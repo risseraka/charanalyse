@@ -42,30 +42,29 @@ function drawChar(context, car, color, next) {
     context.font = '100px Microsoft Yahei';
     context.fillStyle = color;
     context.fillText(car, 0, 80);
-    next(context);
+    typeof next === "function" && next(context);
+}
+
+function draw2Chars(chars, colors, next) {
+    clearCanvas(canvas1, context1);
+    clearCanvas(canvas2, context2);
+
+    drawChar(context1, chars[0], colors[0], function () {
+        drawChar(context2, chars[1], colors[1], next);
+    });
 }
 
 function compareChars(car1, car2, next) {
-    clearCanvas(canvas1, context1);
-    clearCanvas(canvas2, context2);
-    drawChar(
-        context1,
-        car1,
-        '#f00',
+    draw2Chars(
+        [car1, car2],
+        ['#f00', '#00f'],
         function () {
-            drawChar(
-                context2,
-                car2,
-                '#00f',
-                function () {
-                    var img1, img2;
+            var img1, img2;
 
-                    img1 = getCanvasData(canvas1, context1);
-                    img2 = getCanvasData(canvas2, context2);
+            img1 = getCanvasData(canvas1, context1);
+            img2 = getCanvasData(canvas2, context2);
 
-                    next(img1, img2);
-                }
-            );
+            next(img1, img2);
         }
     );
 }
@@ -692,11 +691,14 @@ function composeFromSingle(func1, func2) {
     );
 }
 
-function drawCharCenter(char1) {
-    clearCanvas(canvas1, context1);
-    drawChar(context1, char1, '#f00',
+function drawCharCenter(char1, canvas) {
+    canvas = canvas || canvas1;
+    context = canvas === canvas1 ? context1 : context2
+
+    clearCanvas(canvas, context);
+    drawChar(context, char1, '#f00',
         function () {
-            var img = getCanvasData(canvas1, context1),
+            var img = getCanvasData(canvas, context),
                 data = img.data,
                 edges = getEdges(data),
                 forms = [];
@@ -741,7 +743,7 @@ function drawCharCenter(char1) {
                     } else {
                         begin = tempBegin;
                         line = getPixelLineFrom(data, tempBegin);
-                        drawPoint(context1, img, data, begin, [0, 255, 0, 255]);
+                        drawPoint(context, img, data, begin, [0, 255, 0, 255]);
                     }
                     console.log(
                         "begin:" + pointToString(tempBegin),
@@ -829,7 +831,7 @@ function drawCharCenter(char1) {
                         return;
                     }
 
-                    drawPoint(context1, img, data, end, [0, 255, 0, 255]);
+                    drawPoint(context, img, data, end, [0, 255, 0, 255]);
 
                     //middle = line.slice(line.length / 2)[0];
                     middle = Math.min(getX(begin), getX(end)) +
@@ -841,7 +843,7 @@ function drawCharCenter(char1) {
                     //middle += 4 - middle % 4;
                     middles.push(middle);
 
-                    drawPoint(context1, img, data, middle, [0, 0, 0, 255]);
+                    drawPoint(context, img, data, middle, [0, 0, 0, 255]);
 
                     prevLineLength = (end % 400 - begin % 400) / 4;
                     prevBegin = begin;
@@ -867,12 +869,13 @@ function drawCharCenter(char1) {
 
                 setPointColor(data, middle, [0, 0, 0, 255]);
 
-                context1.putImageData(img, 0, 0);
+                context.putImageData(img, 0, 0);
                 setTimeout(draw, 33);
             }
         }
     );
 }
+
 document.getElementById('draw').onclick = function () {
-    drawCharCenter("丿")
+    drawCharCenter("丿");
 };
