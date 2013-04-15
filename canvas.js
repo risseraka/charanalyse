@@ -1,4 +1,6 @@
-﻿function forEach(data, func) {
+document.body.innerHTML = '';
+
+function forEach(data, func) {
     var i, j;
 
     for (i = 0, j = data.length; i < j; i += 1) {
@@ -14,22 +16,55 @@ function eachPoints(data, func) {
     }
 }
 
-function createCanvas(id) {
+function createCanvas(id, hidden) {
     var canvas = document.createElement('canvas');
     canvas.id = id;
     canvas.width = 100;
     canvas.height = 100;
 
+    if (hidden) {
+        canvas.style.display = 'none';
+    }
     document.body.appendChild(canvas);
     return canvas;
 }
 
-function clearCanvas(canvas, context) {
-    context.clearRect(0, 0, canvas.width, canvas.height);
+function clearCanvas(context) {
+    context.clearRect(0, 0, context.canvas.width, context.canvas.height);
 }
 
-function getCanvasData(canvas, context) {
-    return context.getImageData(0, 0, canvas.width, canvas.height);
+function getCanvasData(context, w, h) {
+    return context.getImageData(
+        0,
+        0,
+        w || context.canvas.width,
+        h || context.canvas.height
+    );
+}
+
+function getSimplifiedImageData(imageData) {
+    var simplified = [];
+
+    eachPoints(imageData.data, function(el, i, data) {
+        if (!isPointBlank(data, i)) {
+            simplified.push(i / 4);
+        }
+    });
+    return simplified;
+}
+
+function series() {
+    var funcs = Array.prototype.slice.call(arguments);
+    var end = funcs.pop();
+
+    function loop() {
+        var func = funcs.shift();
+
+        if (!func) return end();
+
+        setTimeout(func.bind(this, loop), 0);
+    }
+    loop();
 }
 
 var canvas1 = createCanvas('myCanvas');
@@ -38,76 +73,164 @@ var context1 = canvas1.getContext('2d');
 var canvas2 = createCanvas('myCanvas2');
 var context2 = canvas2.getContext('2d');
 
+var canvas3 = createCanvas('myCanvas3');
+var context3 = canvas3.getContext('2d');
+
+var canvas4 = createCanvas('myCanvas4');
+var context4 = canvas4.getContext('2d');
+
+var canvas5 = createCanvas('myCanvas5', true);
+var context5 = canvas5.getContext('2d');
+
 function drawChar(context, car, color, next) {
     context.font = '100px Microsoft Yahei';
     context.fillStyle = color;
     context.fillText(car, 0, 80);
-    typeof next === "function" && next(context);
+
+    typeof next === 'function' && next(context);
 }
 
-function draw2Chars(chars, colors, next) {
-    clearCanvas(canvas1, context1);
-    clearCanvas(canvas2, context2);
-
-    drawChar(context1, chars[0], colors[0], function () {
-        drawChar(context2, chars[1], colors[1], next);
-    });
+function bind(func/*, args, ...*/) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    return function () {
+        func.apply(this, args.concat(Array.prototype.slice.call(arguments)));
+    };
 }
 
-function compareChars(car1, car2, next) {
-    draw2Chars(
-        [car1, car2],
-        ['#f00', '#00f'],
+function drawBothChars(car1, car2, next) {
+    clearCanvas(context1);
+    clearCanvas(context2);
+    series(
+        bind(drawChar, context1, car1, '#f00'),
+        bind(drawChar, context2, car2, '#00f'),
         function () {
             var img1, img2;
 
-            img1 = getCanvasData(canvas1, context1);
-            img2 = getCanvasData(canvas2, context2);
+            img1 = getCanvasData(context1);
+            img2 = getCanvasData(context2);
 
-            next(img1, img2);
+            typeof next === 'function' && next(img1, img2);
         }
     );
 }
 
-function getCommon(car1, car2) {
-    compareChars(car1, car2, function (img1, img2) {
-        var common = [], data1 = img1.data, data2 = img2.data;
-
-        console.log(img1, img2);
-        var i, j;
-        for (i = 0, j = data1.length; i < j; i += 4) {
-            if (
-                (
-                    data1[i] !== 0 ||
-                    data1[i + 1] !== 0 ||
-                    data1[i + 2] !== 0 &&
-                    data1[i + 3] !== 0
-                ) &&
-                (
-                    data2[i] !== 0 ||
-                    data2[i + 1] !== 0 ||
-                    data2[i + 2] !== 0 &&
-                    data2[i + 3] !== 0
-                )
-            ) {
-                common.push([
-                    data1[i],
-                    data1[i + 1],
-                    data1[i + 2],
-                    data1[i + 2]
-                ]);
-            } else {
-                common.push(0);
-            }
+function printSimplifiedData(data) {
+    var lines = data.reduce(function(result, el) {
+        var xy = getXY(el * 4);
+        if (!result[xy[1]]) {
+            result[xy[1]] = [];
         }
-        console.log(common);
-        var total = common.reduce(
-            function (result, el) {
-                 return result + (el != 0);
-            },
-            0
-        );
-        console.log('total:', total);
+        result[xy[1]].push(xy[0]);
+        return result;
+    }, {});
+
+    Object.keys(lines).forEach(function(i) {
+        console.log('y:', i, '|', lines[i].reduce(function(str, point) {
+            return str + (str ? ' ' : '') + point;
+        }, ''));
+    });
+}
+
+function getCommon(car1, car2, next) {
+    drawBothChars(car1, car2, function (img1, img2) {
+        var common,
+            data1 = getSimplifiedImageData(img1),
+            data2 = getSimplifiedImageData(img2);
+
+        console.log(data1, data2);
+        common = intersect(data1, data2);
+        printSimplifiedData(common);
+        //console.log('commons:', str);
+        console.log('total:', common.length);
+        typeof next === 'function' && next(common);
+    });
+}
+
+function highlightCommon(char1, char2) {
+    getCommon(char1, char2, function(common) {
+        drawPointsInContext(context1, common, [255, 200, 150], getCanvasData(context1).data);
+        drawPointsInContext(context2, common, [150, 200, 255], getCanvasData(context2).data);
+    });
+}
+
+function pushIfWithin(arr, arr2, el) {
+    if (arr2.index[el]) {
+        arr.push(el);
+    }
+}
+
+function getAround(data, start) {
+    var around = [];
+
+    pushIfWithin(around, data, start - 1); // left
+    pushIfWithin(around, data, start - 100 - 1); // upper left
+    pushIfWithin(around, data, start - 100); // up
+    pushIfWithin(around, data, start - 100 + 1); // upper right
+    pushIfWithin(around, data, start + 1); // right
+    pushIfWithin(around, data, start + 100 + 1); // down right
+    pushIfWithin(around, data, start + 100); // down
+    pushIfWithin(around, data, start + 100 - 1); // down left
+
+    return around;
+}
+
+function dissectChar(context, char1, next) {
+    clearCanvas(context);
+    drawChar(context, char1, '#f00', function (context) {
+        var img = getCanvasData(context);
+        var dataIndex = {};
+        eachPoints(img.data, function(el, i, data) {
+            data[i + 0] = (data[i + 0] < 200) ? 0 : 255;
+            data[i + 1] = 0;
+            data[i + 2] = 0;
+            data[i + 3] = (data[i + 3] < 254) ? 0 : 255;
+            if (data[i + 0]) {
+                dataIndex[i / 4] = true;
+            }
+        });
+        context.putImageData(img, 0, 0);
+
+        var data = getSimplifiedImageData(getCanvasData(context));
+        data.index = dataIndex;
+
+        //console.log(data);
+
+        var forms = [];
+
+        var visited = {};
+        var notVisited = data;
+        while (notVisited.length > 0) {
+            var form = [];
+            var edge = notVisited.shift();
+
+            if (visited[edge]) continue;
+
+            var toVisit = [edge];
+            while (toVisit.length > 0) {
+                var x = toVisit.shift();
+
+                if (visited[x]) continue;
+                visited[x] = true;
+
+                toVisit = toVisit.concat(getAround(notVisited, x));
+                form.push(x);
+            }
+            // console.log('visited:', visited);
+            // console.log('notVisited:', notVisited);
+            forms.push(form);
+        }
+        // console.log(forms.length, forms);
+
+        if (DEBUG)
+        forms.forEach(function(form, i) {
+            drawPointsInContext(
+                context,
+                form,
+                [50, 255 * (forms.length - i) / forms.length + 50, 50],
+                getCanvasData(context).data
+            );
+        });
+        typeof next === 'function' && next(forms);
     });
 }
 
@@ -190,18 +313,6 @@ function upPos(i) {
 
 function downPos(i) {
     return i + 100 * 4;
-}
-
-function setPointColor(data, start, color) {
-    data[start] = color[0];
-    data[start + 1] = color[1];
-    data[start + 2] = color[2];
-    data[start + 3] = color[3];
-}
-
-function drawPoint(context, img, data, start, color) {
-    setPointColor(data, start, color);
-    context.putImageData(img, 0, 0);
 }
 
 function getPixelLineFrom2(data, start) {
@@ -371,10 +482,10 @@ function getYi2(data, offset) {
     return [];
 }
 
-function testIfYi(canvas, context, car) {
-    clearCanvas(canvas, context);
+function testIfYi(context, car) {
+    clearCanvas(context);
     drawChar(context, car, '#f00', function () {
-        var img = getCanvasData(canvas, context),
+        var img = getCanvasData(context),
             data = img.data;
 
         console.log(data);
@@ -396,7 +507,7 @@ function getForm(data, start) {
         nIndex = {},
         current;
 
-    function addIfNotVisitedNotBlank(i, func) {
+    function addIfnotVisitedNotBlank(i, func) {
         if (
             i >= 0 &&
             i < data.length - 4 - 1 &&
@@ -417,10 +528,10 @@ function getForm(data, start) {
 
         if (!isPointBlank(data, current)) {
             form.push(current);
-            addIfNotVisitedNotBlank(leftPos(current), form.unshift);
-            addIfNotVisitedNotBlank(rightPos(current), form.unshift);
-            addIfNotVisitedNotBlank(upPos(current), form.push);
-            addIfNotVisitedNotBlank(downPos(current), form.push);
+            addIfnotVisitedNotBlank(leftPos(current), form.unshift);
+            addIfnotVisitedNotBlank(rightPos(current), form.unshift);
+            addIfnotVisitedNotBlank(upPos(current), form.push);
+            addIfnotVisitedNotBlank(downPos(current), form.push);
         }
         if (false && i === 100) {
             break;
@@ -428,6 +539,28 @@ function getForm(data, start) {
         i += 1;
     }
     return form;
+}
+
+function drawPointsInContext(context, points, color, data) {
+    points = points.slice();
+    var canvas = context.canvas;
+
+    !data && (data = getCanvasData(context).data);
+    var imgd = context.createImageData(canvas.width, canvas.height),
+        data2 = imgd.data;
+
+    if (data)
+    forEach(data, function (el, i) {
+        data2[i] = el;
+    });
+    points.forEach(function (el) {
+        el *= 4;
+        data2[el] = color[0];
+        data2[el + 1] = color[1];
+        data2[el + 2] = color[2];
+        data2[el + 3] = 255;
+    });
+    context.putImageData(imgd, 0, 0);
 }
 
 function getFirstForm(context, data, next) {
@@ -468,16 +601,7 @@ function getFirstForm(context, data, next) {
     });
 
     setTimeout(function () {
-        var imgd = context.createImageData(100, 100),
-            data2 = imgd.data;
-
-        forEach(data, function (el, i) {
-            data2[i] = el;
-        });
-        form.forEach(function (el) {
-            setPointColor(data2, el, [0, 255, 0, 255]);
-        });
-        context.putImageData(imgd, 0, 0);
+        drawPointsInContext(context, form, [0, 255, 0], data);
         next(data2, form);
     }, 1000);
 }
@@ -493,14 +617,14 @@ function consumeForms(context, data, forms, next) {
     });
 }
 
-function getForms(canvas, context, car, next) {
-    clearCanvas(canvas, context);
+function getForms(context, car, next) {
+    clearCanvas(context);
     drawChar(
         context,
         car,
         '#f00',
         function () {
-            var img = getCanvasData(canvas, context),
+            var img = getCanvasData(context),
                 data = img.data;
 
             console.log(data);
@@ -518,26 +642,26 @@ function getForms(canvas, context, car, next) {
 }
 
 function intersect(a, b) {
-  a = a.slice();
-  b = b.slice();
-  var result = new Array();
-  while( a.length > 0 && b.length > 0 )
-  {  
-     if      (a[0] < b[0] ){ a.shift(); }
-     else if (a[0] > b[0] ){ b.shift(); }
-     else /* they're equal */
-     {
-       result.push(a.shift());
-       b.shift();
-     }
-  }
+    a = a.slice();
+    b = b.slice();
 
-  return result;
+    var result = [];
+    while (a.length > 0 && b.length > 0) {
+        if (a[0] < b[0]) {
+            a.shift();
+        } else if (a[0] > b[0]) {
+            b.shift();
+        } else /* they're equal */ {
+            result.push(a.shift());
+            b.shift();
+        }
+    }
+    return result;
 }
 
-function compareChars(char1, char2) {
-    getForms(canvas1, context1, char1, function (forms1) {
-        getForms(canvas2, context2, char2, function (forms2) {
+function compareCharsOLD(char1, char2) {
+    getForms(context1, char1, function (forms1) {
+        getForms(context2, char2, function (forms2) {
             var common = intersect(forms1[0], forms2[0]);
             console.log(common);
         });
@@ -579,7 +703,7 @@ function getEdges(data, offset) {
 }
 
 function drawForms(forms) {
-    clearCanvas(canvas2, context2);
+    clearCanvas(context2);
 
     var imgd = context2.createImageData(100, 100),
         data = imgd.data;
@@ -589,7 +713,10 @@ function drawForms(forms) {
             form.forEach(
                 function (line) {
                     line.forEach(function (i) {
-                        setPointColor(data, i, [255, 0, 0, 255]);
+                        data[i] = 255;
+                        data[i + 1] = 0;
+                        data[i + 2] = 0;
+                        data[i + 3] = 255;
                     });
                 }
             );
@@ -598,10 +725,10 @@ function drawForms(forms) {
     context2.putImageData(imgd, 0, 0);
 }
 
-function dissectChar(char1) {
-    clearCanvas(canvas1, context1);
+function dissectCharOLD(char1) {
+    clearCanvas(context1);
     drawChar(context1, char1, '#f00', function () {
-         var img = getCanvasData(canvas1, context1),
+         var img = getCanvasData(context1),
             data = img.data,
             edges = getEdges(data),
             forms = [];
@@ -632,250 +759,85 @@ function dissectChar(char1) {
    });
 }
 
-function sanitize(data) {
-    eachPoints(
-        data,
-        function (el, i) {
-            if (!isPointBlank(data, i)) {
-                setPointColor(data, i, [255, 0, 0, 255]);
-            }
-        }
-    );
-}
+var DEBUG = false;
+function compareCharForms(char1, char2, next) {
+    clearCanvas(context1);
+    dissectChar(context1, char1, function(forms1) {
+        clearCanvas(context2);
+        dissectChar(context2, char2, function(forms2) {
+            var matches = [];
 
-function getWidth(a, b) {
-    return Math.abs(a % 400 - b % 400) / 4;
-}
-
-function getHeight(a, b) {
-    return Math.abs(Math.floor(a / 400) - Math.floor(b / 400));
-}
-
-function getDistance(a, b) {
-    return Math.sqrt(Math.pow(getWidth(a, b), 2) +
-        Math.pow(getHeight(a, b), 2));
-}
-
-function getX(a) {
-    return a % 400;
-}
-
-function getY(a) {
-    return Math.floor(a / 400);
-}
-
-function pointToString(a) {
-    return a + "(" + getX(a) + "," + getY(a) + ")";
-}
-
-function compose(func1, func2) {
-    var that = func1;
-
-    function composition() {
-        var res = that.apply(composition, arguments);
-        return func2.apply(composition, res);
-    }
-    return composition;
-}
-
-function arrify(func) {
-    return function arrifiedFunction() {
-        return [func.apply(this, arguments)];
-    };
-}
-
-function composeFromSingle(func1, func2) {
-    return compose(
-        arrify(func1),
-        func2
-    );
-}
-
-function drawCharCenter(char1, canvas) {
-    canvas = canvas || canvas1;
-    context = canvas === canvas1 ? context1 : context2
-
-    clearCanvas(canvas, context);
-    drawChar(context, char1, '#f00',
-        function () {
-            var img = getCanvasData(canvas, context),
-                data = img.data,
-                edges = getEdges(data),
-                forms = [];
-
-            sanitize(img.data);
-
-            var start = 0,
-                begin,
-                line,
-                end,
-                middle,
-                prevBegin,
-                prevEnd,
-                prevLineLength,
-                visited = [];
-
-            var middles = [];
-
-            function computeHoriz() {
-                function selectBegin() {
-                    var tempBegin,
-                        tempEnd;
-
-                    if (prevBegin === undefined) {
-                        tempBegin = getFirstPointPos(data, start);
-                        line = getPixelLineFrom(data, tempBegin);
-                        tempEnd = line.slice(line.length - 1)[0];
-                    } else {
-                        tempBegin = getBlankSurroundedDownPoint(prevBegin);
-                        tempEnd = prevEnd;
+            forms1.slice(0, 1).forEach(function(form1, i1) {
+                forms2.slice(0, 1).forEach(function(form2, i2) {
+                    intersection = intersect(
+                        form1.sort(function(a, b){return a - b;}),
+                        form2.sort(function(a, b){return a - b;})
+                    );
+                    var match1 = Math.round(100 * intersection.length / form1.length);
+                    var match2 = Math.round(100 * intersection.length / form2.length);
+                    drawPointsInContext(context1, intersection, [255, 0, 0]);
+                    drawPointsInContext(context2, intersection, [255, 0, 0]);
+                    if (match1 > 90 && match2 > 90) {
+                        console.log(
+                            char1, '|', char2,
+                            'form1:', i1, ', form2:', i2,
+                            intersection.length + '/' + form1.length,
+                            '(' + match1 + '%)',
+                            '/',
+                            '(' + match2 + '%)'
+                        );
+                        matches = [char1, char2];
+                    } else if (DEBUG) {
+                        console.log(
+                            char1, '|', char2,
+                            'form1:', i1, ', form2:', i2,
+                            intersection.length + '/' + form1.length,
+                            '(' + match1 + '%)',
+                            '/',
+                            '(' + match2 + '%)'
+                        );
                     }
-
-                    var beginToEndWidth = getWidth(tempBegin, tempEnd);
-                    var distance = getDistance(prevBegin, tempEnd);
-                    console.log();
-                    if (
-                        prevLineLength !== undefined &&
-                        beginToEndWidth > distance ||
-                        getX(tempBegin) > getX(prevBegin)
-                    ) {
-                        begin = prevBegin;
-                    } else {
-                        begin = tempBegin;
-                        line = getPixelLineFrom(data, tempBegin);
-                        drawPoint(context, img, data, begin, [0, 255, 0, 255]);
-                    }
-                    console.log(
-                        "begin:" + pointToString(tempBegin),
-                        "prevEnd:" + pointToString(tempEnd),
-                        "distance:", Math.floor(distance));
-                }
-
-                function getSurroundingBlanksCount(a) {
-                    return isPointBlank(data, upPos(a)) +
-                        isPointBlank(data, upPos(rightPos(a))) +
-                        isPointBlank(data, rightPos(a)) +
-                        isPointBlank(data, rightPos(downPos(a))) +
-                        isPointBlank(data, downPos(a)) +
-                        isPointBlank(data, downPos(leftPos(a))) +
-                        isPointBlank(data, leftPos(a)) +
-                        isPointBlank(data, leftPos(upPos(a)));
-                }
-
-                function getBlankSurroundedDownPoint(prev) {
-                    var getPoses = [
-                        downPos,
-                        composeFromSingle(downPos, rightPos),
-                        composeFromSingle(downPos, leftPos),
-                        leftPos,
-                        rightPos,
-                    ];
-
-                    return getPoses.reduce(
-                        function (result, getPos) {
-                            var pos = getPos(prev),
-                                count;
-
-                            if (
-                                visited[pos] === true ||
-                                isPointBlank(data, pos)
-                            ) {
-                                return result;
-                            }
-                            count = getSurroundingBlanksCount(pos);
-                            if (count > result.max) {
-                                result.max = count;
-                                result.pos = pos;
-                            }
-                            return result;
-                        }, {
-                            "pos": 0,
-                            "max": 0
-                        }
-                    ).pos;
-                }
-
-                function getDirectLeftBlankedDownPoint(prev) {
-                    var down = downPos(prev);
-
-                    while (
-                        !isPointBlank(data, leftPos(down)) &&
-                        !isPointBlank(data, upPos(down))) {
-                        down = leftPos(down);
-                    }
-                    return down;
-                }
-
-                function getDirectRightBlankDownPoint(prev) {
-                    var down = downPos(prev);
-
-                    while (isPointBlank(data, down)) {
-                        down = leftPos(down);
-                    }
-                    return down;
-                }
-
-                function selectEnd() {
-                    if (!prevEnd) {
-                        end = line.slice(line.length - 1)[0];
-                    } else {
-                        end = getBlankSurroundedDownPoint(prevEnd);
-                        visited[end] = true;
-                        if (end === 0) {
-                            end = prevEnd;
-                        }
-                    }
-
-                    if (prevEnd === end) {
-                        console.log('prevend === end');
-                        return;
-                    }
-
-                    drawPoint(context, img, data, end, [0, 255, 0, 255]);
-
-                    //middle = line.slice(line.length / 2)[0];
-                    middle = Math.min(getX(begin), getX(end)) +
-                        Math.round(getWidth(begin, end) / 2) * 4 +
-                        getY(Math.min(begin, end)) * 400 +
-                        Math.floor(Math.abs(
-                            (getY(end) - getY(begin)) / 2
-                        )) * 400;
-                    //middle += 4 - middle % 4;
-                    middles.push(middle);
-
-                    drawPoint(context, img, data, middle, [0, 0, 0, 255]);
-
-                    prevLineLength = (end % 400 - begin % 400) / 4;
-                    prevBegin = begin;
-                    prevEnd = end;
-                    start = end + 4;
-                    setTimeout(computeHoriz, 33);
-                }
-
-                selectBegin();
-                if (begin === -1) {
-                    return;
-                }
-                setTimeout(selectEnd, 33);
-            }
-            computeHoriz();
-
-            function draw() {
-                if (middles.length === 0) {
-                    return;
-                }
-
-                var middle = middles.shift();
-
-                setPointColor(data, middle, [0, 0, 0, 255]);
-
-                context.putImageData(img, 0, 0);
-                setTimeout(draw, 33);
-            }
-        }
-    );
+                });
+            });
+            typeof next === 'function' && next(matches.length > 0 ? matches : undefined);
+        });
+    });
 }
 
-document.getElementById('draw').onclick = function () {
-    drawCharCenter("丿");
-};
+function drawAllChars(chars, rate) {
+    var funcs = Array.prototype.slice.call(chars).map(function(char1) {
+        return function(callback) {
+            setTimeout(function() {
+                clearCanvas(context1);
+
+                dissectChar(char1)
+                // drawChar(context1, char1);
+
+                callback();
+            }, rate ? 1000 / rate : 0);
+        };
+    });
+
+    funcs.push(function end() {
+        console.log(end);
+    });
+
+    series.apply(this, funcs);
+}
+
+function scaleForm(context, form) {
+    clearCanvas(context);
+    clearCanvas(context5);
+    context.save();
+
+    form = form.slice().sort(function(a, b) { return a - b; });
+    console.log(form);
+
+    var maxX = form.reduce(function(max, x) { x = x % 100; return x > max ? x : max; }, 0),
+        maxY = Math.round(form[form.length - 1] / 100);
+
+    drawPointsInContext(context5, form, [0, 255, 0]);
+    context.scale(Math.round(1000 / maxX) / 10, Math.round(1000 / maxY) / 10);
+    context.drawImage(context5.canvas, 0, 0);
+    context.restore();
+}
