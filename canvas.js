@@ -856,12 +856,18 @@ function scaleForm(context, form) {
       },
       { max: 0, min: Infinity }
     ),
-    maxY = Math.round(form[form.length - 1] / 100);
+    maxY = Math.round(form[form.length - 1] / 100),
+    minY = Math.round(form[0] / 100);
 
-  console.log(xs);
+  console.log('x:(', xs.min, xs.max, '), y:(', minY, maxY, ')');
   drawPointsInContext(context5, form, [0, 255, 0]);
   context.scale(Math.round(1000 / xs.max) / 10, Math.round(1000 / maxY) / 10);
-  context.drawImage(context5.canvas, xs.min, 0, xs.max - xs.min, 100, 0, 0, 100, 100);
+  context.drawImage(
+    context5.canvas,
+    xs.min, minY,
+    xs.max - xs.min, maxY - minY,
+    0, 0, 100, 100
+  );
   context.restore();
 }
 
@@ -870,6 +876,57 @@ function compareHaiBu(char1, char2, next) {
     dissectChar(context2, '不', function(forms2) {
       scaleForm(context3, forms1[1]);
       scaleForm(context4, forms2[0].concat(forms2[1]));
+
+      var form1 = getSimplifiedImageData(getCanvasData(context3));
+      var form2 = getSimplifiedImageData(getCanvasData(context4));
+      window.intersection = compareForms(form1, form2);
+      console.log(intersection);
+    });
+  });
+}
+
+function compareHaiBu(char1, char2, next) {
+  dissectChar(context1, '还', function(forms1) {
+    dissectChar(context2, '不', function(forms2) {
+      scaleForm(context3, forms1[1]);
+      scaleForm(context4, forms2[0].concat(forms2[1]));
+
+      var form1 = getSimplifiedImageData(getCanvasData(context3));
+      var form2 = getSimplifiedImageData(getCanvasData(context4));
+      window.intersection = compareForms(form1, form2);
+      console.log(intersection);
+    });
+  });
+}
+
+var pairs = [
+  ['字',　'学'],
+  ['牛', '年'],
+  ['仟', '仠'],
+  ['生', '主']
+];
+
+function tata() {
+  drawBothChars(pairs[0][0], pairs[0][1], function(img1, img2) {
+  });
+}
+
+
+function compareZiXue(char1, char2, next) {
+  char1 = pairs[2][0];
+  char2 = pairs[2][1];
+  drawChar(context3, char1, '0f0');
+  drawChar(context4, char2, '0f0');
+  dissectChar(context1, char1, function(forms1) {
+    dissectChar(context2, char2, function(forms2) {
+      if (false) {
+        if (forms1.length >= 1) {
+          scaleForm(context3, forms1.slice(-1)[0]);
+        }
+        if (forms2.length >= 1) {
+          scaleForm(context4, forms2.slice(-1)[0]);
+        }
+      }
 
       var form1 = getSimplifiedImageData(getCanvasData(context3));
       var form2 = getSimplifiedImageData(getCanvasData(context4));
