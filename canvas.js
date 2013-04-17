@@ -759,6 +759,24 @@ function dissectCharOLD(char1) {
    });
 }
 
+function compareForms(form1, form2) {
+  var common = intersect(
+    form1.sort(function(a, b){return a - b;}),
+    form2.sort(function(a, b){return a - b;})
+  );
+
+  drawPointsInContext(context3, common, [255, 0, 0]);
+  drawPointsInContext(context4, common, [255, 0, 0]);
+
+  var match1 = Math.round(100 * common.length / form1.length);
+  var match2 = Math.round(100 * common.length / form2.length);
+  return {
+    match1: match1,
+    match2: match2,
+    common: common
+  };
+}
+
 var DEBUG = false;
 function compareCharForms(char1, char2, next) {
   clearCanvas(context1);
@@ -769,19 +787,15 @@ function compareCharForms(char1, char2, next) {
 
       forms1.slice(0, 1).forEach(function(form1, i1) {
         forms2.slice(0, 1).forEach(function(form2, i2) {
-          intersection = intersect(
-            form1.sort(function(a, b){return a - b;}),
-            form2.sort(function(a, b){return a - b;})
-          );
-          var match1 = Math.round(100 * intersection.length / form1.length);
-          var match2 = Math.round(100 * intersection.length / form2.length);
-          drawPointsInContext(context1, intersection, [255, 0, 0]);
-          drawPointsInContext(context2, intersection, [255, 0, 0]);
+          intersection = compareForms(form1, form2);
+          var common = intersection.common;
+          var match1 = intersection.match1;
+          var match2 = intersection.match2;
           if (match1 > 90 && match2 > 90) {
             console.log(
               char1, '|', char2,
               'form1:', i1, ', form2:', i2,
-              intersection.length + '/' + form1.length,
+              common.length + '/' + form1.length,
               '(' + match1 + '%)',
               '/',
               '(' + match2 + '%)'
@@ -791,7 +805,7 @@ function compareCharForms(char1, char2, next) {
             console.log(
               char1, '|', char2,
               'form1:', i1, ', form2:', i2,
-              intersection.length + '/' + form1.length,
+              common.length + '/' + form1.length,
               '(' + match1 + '%)',
               '/',
               '(' + match2 + '%)'
@@ -810,7 +824,7 @@ function drawAllChars(chars, rate) {
       setTimeout(function() {
         clearCanvas(context1);
 
-        dissectChar(char1)
+        dissectChar(context1, char1);
         // drawChar(context1, char1);
 
         callback();
@@ -833,11 +847,34 @@ function scaleForm(context, form) {
   form = form.slice().sort(function(a, b) { return a - b; });
   console.log(form);
 
-  var maxX = form.reduce(function(max, x) { x = x % 100; return x > max ? x : max; }, 0),
+  var xs = form.reduce(
+      function(xs, x) {
+        x = x % 100;
+        x > xs.max && (xs.max = x);
+        x < xs.min && (xs.min = x);
+        return xs;
+      },
+      { max: 0, min: Infinity }
+    ),
     maxY = Math.round(form[form.length - 1] / 100);
 
+  console.log(xs);
   drawPointsInContext(context5, form, [0, 255, 0]);
-  context.scale(Math.round(1000 / maxX) / 10, Math.round(1000 / maxY) / 10);
-  context.drawImage(context5.canvas, 0, 0);
+  context.scale(Math.round(1000 / xs.max) / 10, Math.round(1000 / maxY) / 10);
+  context.drawImage(context5.canvas, xs.min, 0, xs.max - xs.min, 100, 0, 0, 100, 100);
   context.restore();
+}
+
+function compareHaiBu(char1, char2, next) {
+  dissectChar(context1, '还', function(forms1) {
+    dissectChar(context2, '不', function(forms2) {
+      scaleForm(context3, forms1[1]);
+      scaleForm(context4, forms2[0].concat(forms2[1]));
+
+      var form1 = getSimplifiedImageData(getCanvasData(context3));
+      var form2 = getSimplifiedImageData(getCanvasData(context4));
+      window.intersection = compareForms(form1, form2);
+      console.log(intersection);
+    });
+  });
 }
