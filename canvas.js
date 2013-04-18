@@ -1110,3 +1110,27 @@ function getHorizontalLines(scoopedData) {
   }
   return lines;
 }
+
+function lineDetection(char1) {
+  drawChar(context1, char1, '#f00');
+
+  var scooping = scoopOut(context1);
+  drawPointsInContext(context1, scooping.scooped, [0, 0, 255]);
+  // removing everything inside
+  drawPointsInContext(context1, scooping.fillins, [255, 255, 255]);
+
+  var lines = getHorizontalLines(scooping.scooped);
+  var points = lines.reduce(function(res, line) {
+    console.log(
+      line[0] % 100, Math.floor(line[0] / 100), ':',
+      line[1] % 100, Math.floor(line[1] / 100)
+    );
+    return res.concat(line);
+  }, []);
+  drawPointsInContext(context2, points, [0, 0, 0]);
+
+  var middles = lines.map(function (line) {
+    return Math.floor((line[0] + line[1]) / 2);
+  });
+  drawPointsInContext(context2, middles, [255, 0, 0]);
+}
