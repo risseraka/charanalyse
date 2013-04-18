@@ -244,7 +244,7 @@ function dissectChar(context, char1, next) {
 function isPointBlank(data, i) {
   return data[i] === 0 &&
     data[i + 1] === 0 &&
-    data[i + 2] === 0 &&
+    data[i + 2] === 0 ||
     data[i + 3] === 0;
 }
 
@@ -548,7 +548,7 @@ function getForm(data, start) {
   return form;
 }
 
-function drawPointsInContext(context, points, color, data) {
+function drawPointsInContext(context, points, rgb, data) {
   points = points.slice();
   var canvas = context.canvas;
 
@@ -560,12 +560,14 @@ function drawPointsInContext(context, points, color, data) {
   forEach(data, function (el, i) {
     data2[i] = el;
   });
+  var isWhite = rgb[0] + rgb[1] + rgb[2] === 255 * 3;
   points.forEach(function (el) {
     el *= 4;
-    data2[el] = color[0];
-    data2[el + 1] = color[1];
-    data2[el + 2] = color[2];
-    data2[el + 3] = 255;
+    data2[el] = rgb[0];
+    data2[el + 1] = rgb[1];
+    data2[el + 2] = rgb[2];
+    // setting alpha to 0 if color is actually 'white'
+    data2[el + 3] = isWhite ? 0 : 255;
   });
   context.putImageData(imgd, 0, 0);
 }
@@ -772,8 +774,8 @@ function compareForms(form1, form2) {
     form2.sort(function(a, b){return a - b;})
   );
 
-  drawPointsInContext(context3, common, [255, 0, 0]);
-  drawPointsInContext(context4, common, [255, 0, 0]);
+  drawPointsInContext(context3, common, [0, 255, 0]);
+  drawPointsInContext(context4, common, [0, 255, 0]);
 
   var match1 = Math.round(100 * common.length / form1.length);
   var match2 = Math.round(100 * common.length / form2.length);
