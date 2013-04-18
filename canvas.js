@@ -1008,6 +1008,11 @@ function scoopOut(context) {
   console.log('data.length:', data.length);
   var scooped = [];
   var fillins = [];
+  var scoopedIndex = {};
+  var fillinsIndex = {};
+  scooped.index = scoopedIndex;
+  fillins.index = fillinsIndex;
+
   var index = data.index;
   data.forEach(function(x) {
     if (
@@ -1021,8 +1026,10 @@ function scoopOut(context) {
       index[x + 100 - 1] // down left
     ) {
       fillins.push(x);
+      fillinsIndex[x] = true;
     } else {
       scooped.push(x);
+      scoopedIndex[x] = true;
     }
   });
   console.log('scooped.length:', scooped.length);
