@@ -879,12 +879,12 @@ function scaleForm(context, form) {
       },
       { max: 0, min: Infinity }
     ),
-    maxY = Math.round(form[form.length - 1] / 100),
-    minY = Math.round(form[0] / 100);
+    maxY = Math.floor(form[form.length - 1] / 100),
+    minY = Math.floor(form[0] / 100);
 
   console.log('x:(', xs.min, ',', xs.max, '), y:(', minY, ',', maxY, ')');
   drawPointsInContext(scaleContext, form, [255, 0, 0]);
-  // context.scale(Math.round(1000 / xs.max) / 10, Math.round(1000 / maxY) / 10);
+  // context.scale(Math.floor(1000 / xs.max) / 10, Math.floor(1000 / maxY) / 10);
   context.drawImage(
     scaleContext.canvas,
     xs.min, minY,
@@ -1083,7 +1083,30 @@ function scoopedOutToLine(scooped) {
 
 function printLine(line) {
   var printable = line.map(function(xy) {
-    return [xy % 100, Math.round(xy / 100)]
+    return [xy % 100, Math.floor(xy / 100)]
   }).join(' | ');
   console.log(printable);
+}
+
+function getHorizontalLines(scoopedData) {
+  var points = scoopedData.slice();
+  var lines = [];
+  var index = scoopedData.index;
+
+  var start = points.shift();
+  var previous = start;
+  while (points.length > 0) {
+    var end = points.shift();
+
+    // end is on the same line as start
+    if (Math.floor(start / 100) !== Math.floor(end / 100)) {
+      // previous's right point is blank
+      if (!index[previous + 1]) {
+        lines.push([start, previous]);
+        start = points.shift();
+      }
+    }
+    previous = end;
+  }
+  return lines;
 }
