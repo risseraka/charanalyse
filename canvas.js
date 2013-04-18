@@ -67,6 +67,10 @@ function series() {
   loop();
 }
 
+// hidden scaling helper canvas
+var scaleCanvas = createCanvas('myCanvas', true);
+var scaleContext = scaleCanvas.getContext('2d');
+
 var canvas1 = createCanvas('myCanvas');
 var context1 = canvas1.getContext('2d');
 
@@ -79,8 +83,11 @@ var context3 = canvas3.getContext('2d');
 var canvas4 = createCanvas('myCanvas4');
 var context4 = canvas4.getContext('2d');
 
-var canvas5 = createCanvas('myCanvas5', true);
+var canvas5 = createCanvas('myCanvas5');
 var context5 = canvas5.getContext('2d');
+
+var canvas6 = createCanvas('mycanvas6');
+var context6 = canvas6.getContext('2d');
 
 function drawChar(context, car, color, next) {
   context.font = '100px Microsoft Yahei';
@@ -841,8 +848,8 @@ function drawAllChars(chars, rate) {
 
 function scaleForm(context, form) {
   clearCanvas(context);
-  clearCanvas(context5);
-  context.save();
+  clearCanvas(scaleContext);
+  // context.save();
 
   form = form.slice().sort(function(a, b) { return a - b; });
   console.log(form);
@@ -859,16 +866,15 @@ function scaleForm(context, form) {
     maxY = Math.round(form[form.length - 1] / 100),
     minY = Math.round(form[0] / 100);
 
-  console.log('x:(', xs.min, xs.max, '), y:(', minY, maxY, ')');
-  drawPointsInContext(context5, form, [0, 255, 0]);
-  context.scale(Math.round(1000 / xs.max) / 10, Math.round(1000 / maxY) / 10);
+  console.log('x:(', xs.min, ',', xs.max, '), y:(', minY, ',', maxY, ')');
+  drawPointsInContext(scaleContext, form, [255, 0, 0]);
+  // context.scale(Math.round(1000 / xs.max) / 10, Math.round(1000 / maxY) / 10);
   context.drawImage(
-    context5.canvas,
+    scaleContext.canvas,
     xs.min, minY,
     xs.max - xs.min, maxY - minY,
     0, 0, 100, 100
   );
-  context.restore();
 }
 
 function compareHaiBu(char1, char2, next) {
