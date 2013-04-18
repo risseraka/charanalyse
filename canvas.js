@@ -1,4 +1,4 @@
-document.body.innerHTML = '';
+﻿document.body.innerHTML = '';
 
 function forEach(data, func) {
   var i, j;
@@ -50,6 +50,20 @@ function getSimplifiedImageData(imageData) {
       simplified.push(i / 4);
     }
   });
+  return simplified;
+}
+
+function getSimplifiedImageDataWithIndex(imageData) {
+  var simplified = [];
+  var index = {};
+
+  eachPoints(imageData.data, function(el, i, data) {
+    if (!isPointBlank(data, i)) {
+      simplified.push(i / 4);
+      index[i / 4] = true;
+    }
+  });
+  simplified.index = index;
   return simplified;
 }
 
@@ -908,7 +922,8 @@ function compareHaiBu(char1, char2, next) {
 }
 
 var pairs = [
-  ['字',　'学'],
+  ['字', '学'],
+  ['蓝', '孟'],
   ['牛', '年'],
   ['仟', '仠'],
   ['生', '主']
@@ -942,4 +957,126 @@ function compareZiXue(char1, char2, next) {
       console.log(intersection);
     });
   });
+}
+
+function filterRGB(data, rgb) {
+  var points = [];
+
+  eachPoints(data, function(r, i, data) {
+    if (
+      data[i] === rgb[0] &&
+      data[i + 1] === rgb[1] &&
+      data[i + 2] === rgb[2]
+    ) {
+      points.push(i / 4);
+    }
+  });
+  return points;
+}
+
+function compareFormsAtPos(char1, pos1, char2, pos2) {
+  dissectChar(context1, char1, function (forms1) {
+    dissectChar(context2, char2, function (forms2) {
+      scaleForm(context3, forms1.slice(pos1)[0]);
+      scaleForm(context4, forms2.slice(pos2)[0]);
+
+
+        var form1 = getSimplifiedImageData(getCanvasData(context3));
+        var form2 = getSimplifiedImageData(getCanvasData(context4));
+        window.intersection = compareForms(form1, form2);
+        console.log(intersection);
+
+        window.exclusion1 = filterRGB(getCanvasData(context3).data, [255, 0, 0]);
+        window.exclusion2 = filterRGB(getCanvasData(context4).data, [255, 0, 0]);
+        drawPointsInContext(
+          context5,
+          exclusion1,
+          [255, 0, 0]
+        );
+        drawPointsInContext(
+          context6,
+          exclusion2,
+          [255, 0, 0]
+        );
+    });
+  });
+}
+
+function scoopOut(context) {
+  var data = getSimplifiedImageDataWithIndex(getCanvasData(context));
+
+  console.log('data.length:', data.length);
+  var scooped = [];
+  var fillins = [];
+  var index = data.index;
+  data.forEach(function(x) {
+    if (
+      index[x - 1] && // left
+      index[x - 100 - 1] && // up left
+      index[x - 100] && // up
+      index[x - 100 + 1] && // up right
+      index[x + 1] && // right
+      index[x + 100 + 1] && // down right
+      index[x + 100] && // down
+      index[x + 100 - 1] // down left
+    ) {
+      fillins.push(x);
+    } else {
+      scooped.push(x);
+    }
+  });
+  console.log('scooped.length:', scooped.length);
+  console.log('fillins.length:', fillins.length);
+  return {
+    scooped: scooped,
+    fillins: fillins
+  };
+}
+
+function arePointsAdjacent(a, b) {
+  var diff = b - a;
+  return diff === 0 - 1 || // left
+    diff === 100 - 1 || // up left
+    diff === 100 || // up
+    diff === 100 + 1 || // up right
+    diff === 0 + 1 || // right
+    diff === -100 + 1 || // down right
+    diff === -100 || // down;
+    diff === -100 - 1 // down left;
+}
+
+if (false) // STD-BY
+function scoopedOutToLine(scooped) {
+  scooped = scooped.slice();
+  if (scooped.length < 2) return scooped;
+
+  var i = 0;
+
+  var lines = [];
+
+  while (scooped.length > 0 && i < 10000) {
+    var last = scooped.shift();
+    var line = [last];
+
+    var start = last;
+    while (current !== start) {
+      var current = scooped.shift();
+      if (arePointsAdjacent(current, last)) {
+        line.push(current);
+        last = current;
+      } else {
+        scooped.push(current);
+      }
+      i += 1;
+    }
+    lines.push(line);
+  }
+  return lines;
+}
+
+function printLine(line) {
+  var printable = line.map(function(xy) {
+    return [xy % 100, Math.round(xy / 100)]
+  }).join(' | ');
+  console.log(printable);
 }
