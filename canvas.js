@@ -1108,46 +1108,89 @@ function printLine(line) {
   console.log(printable);
 }
 
-function getHorizontalBorders(scoopedData) {
-  var points = scoopedData.slice();
-  var lines = [];
-  var index = scoopedData.index;
+function getHorizontalBorders(simplifiedData) {
+  var points = simplifiedData.slice();
+  var borders = [];
+  var index = simplifiedData.index;
 
   var start = points.shift();
-  var previous = start;
   while (points.length > 0) {
-    var end = points.shift();
+    // if start right point is blank, continue
+    if (index[start + 1] === undefined) {
+      start = points.shift();
+      continue;
+    }
 
+    var end = points.shift();
     // end is on the same line as start
-    if (Math.floor(start / 100) !== Math.floor(end / 100)) {
-      // previous's right point is blank
-      if (index[previous + 1] === undefined) {
-        lines.push([start, previous]);
+    if (simplifiedY(start) === simplifiedY(end)) {
+      // end's right point is blank
+      if (index[end + 1] === undefined) {
+        borders.push([start, end]);
         start = points.shift();
       }
+    } else {
+      start = end;
     }
-    previous = end;
   }
-  return lines;
+  return borders;
 }
 
-function borderDetection(char1) {
-  var scooped = scoopChar(context1, char1);
+function getVerticalBorders(simplifiedData) {
+  var points = simplifiedData.slice();
+  var borders = [];
+  var index = simplifiedData.index;
 
-  var lines = getHorizontalBorders(scooped);
-  var points = lines.reduce(function (res, line) {
+  var start = points.shift();
+  while (points.length > 0) {
+    // if start down point is blank, continue
+    if (index[start + 100] === undefined) {
+      start = points.shift();
+      continue;
+    }
+
+    var end = points.shift();
+    // end is on the same column as start
+    if (simplifiedX(start) === simplifiedX(end)) {
+      // end's down point is blank, line is complete
+      if (index[end + 100] === undefined) {
+        borders.push([start, end]);
+        start = points.shift();
+      }
+    } else {
+      start = end;
+    }
+  }
+  return borders;
+}
+
+function drawBordersAndMiddles(borders, data) {
+  var points = borders.reduce(function (res, borders) {
     console.log(
-      line[0] % 100, Math.floor(line[0] / 100), ':',
-      line[1] % 100, Math.floor(line[1] / 100)
+      simplifiedX(borders[0]), simplifiedY(borders[0]), ':',
+      simplifiedX(borders[1]), simplifiedY(borders[1])
     );
-    return res.concat(line);
+    return res.concat(borders);
   }, []);
   drawPointsInContext(context2, points, [0, 0, 0]);
 
-  var middles = lines.map(function (line) {
-    return Math.floor((line[0] + line[1]) / 2);
+  var middles = borders.map(function (borders) {
+    return Math.floor((simplifiedX(borders[0]) + simplifiedX(borders[1])) / 2) +
+      Math.round((simplifiedY(borders[0]) + simplifiedY(borders[1])) / 2) * 100;
   });
   drawPointsInContext(context2, middles, [255, 0, 0]);
+}
+
+function borderDetection(char1) {
+  clearCanvas(context1);
+  drawChar(context1, char1, '#f00');
+  var simplifiedData = getSimplifiedImageDataWithIndex(getCanvasData(context1));
+
+  clearCanvas(context2);
+  var borders = getHorizontalBorders(simplifiedData);
+  drawBordersAndMiddles(borders, simplifiedData);
+  var borders = getVerticalBorders(toVerticalData(simplifiedData));
+  drawBordersAndMiddles(borders, simplifiedData);
 }
 
 function detectEdgesFromScoopedData(scoopedData) {
