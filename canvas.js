@@ -1098,7 +1098,7 @@ function printLine(line) {
   console.log(printable);
 }
 
-function getHorizontalLines(scoopedData) {
+function getHorizontalBorders(scoopedData) {
   var points = scoopedData.slice();
   var lines = [];
   var index = scoopedData.index;
@@ -1121,7 +1121,7 @@ function getHorizontalLines(scoopedData) {
   return lines;
 }
 
-function lineDetection(char1) {
+function borderDetection(char1) {
   drawChar(context1, char1, '#f00');
 
   var scooping = scoopOut(context1);
@@ -1129,8 +1129,8 @@ function lineDetection(char1) {
   // removing everything inside
   drawPointsInContext(context1, scooping.fillins, [255, 255, 255]);
 
-  var lines = getHorizontalLines(scooping.scooped);
-  var points = lines.reduce(function(res, line) {
+  var lines = getHorizontalBorders(scooping.scooped);
+  var points = lines.reduce(function (res, line) {
     console.log(
       line[0] % 100, Math.floor(line[0] / 100), ':',
       line[1] % 100, Math.floor(line[1] / 100)
@@ -1143,4 +1143,115 @@ function lineDetection(char1) {
     return Math.floor((line[0] + line[1]) / 2);
   });
   drawPointsInContext(context2, middles, [255, 0, 0]);
+}
+
+function detectEdgesFromScoopedData(scoopedData) {
+  var index = scoopedData.index;
+  var points = scoopedData.slice();
+
+  return points.reduce(function (edges, x) {
+    var around = getAround(scoopedData, x);
+    if (
+      around.length === 2 &&
+      Math.abs(around[0] - around[1]) !== 2 &&
+      Math.abs(around[0] - around[1]) !== 200
+    ) {
+      console.log(x);
+      edges.push(x);
+    }
+    return edges;
+  }, []);
+}
+
+function edgeDetection(char1) {
+  clearCanvas(context1);
+  drawChar(context1, char1, '#f00');
+
+  var scooping = scoopOut(context1);
+  drawPointsInContext(context1, scooping.scooped, [0, 0, 255]);
+  // removing everything inside
+  drawPointsInContext(context1, scooping.fillins, [255, 255, 255]);
+
+  window.edges = detectEdgesFromScoopedData(scooping.scooped);
+  clearCanvas(context2);
+  drawPointsInContext(context2, edges, [255, 0, 0])
+}
+
+function getHorizontalLine(simplifiedData, start) {
+  var index = simplifiedData.index;
+  var line = [];
+  for (; index[start]; start += 1) {
+    line.push(start);
+  }
+  return line;
+}
+
+function detectHorizontalLinesFromScoopedData(scoopedData) {
+  var index = scoopedData.index;
+  var points = scoopedData.slice();
+
+  return points.reduce(function(lines, x) {
+    var prevLine = lines.slice(-1)[0];
+    if (prevLine && x === prevLine.slice(-1)[0] + 1) {
+      prevLine.push(x);
+    } else {
+      lines.push([x]);
+    }
+    return lines;
+  }, []);
+}
+
+function toVerticalData(simplifiedData) {
+  var data = simplifiedData.slice();
+  data.index = simplifiedData.index;
+
+  return data.sort(function(a, b) {
+    // horizontal diff
+    return a % 100 - b % 100 ||
+      // vertical diff
+      Math.floor(a / 100) - Math.floor(b / 100)
+  })
+}
+
+function detectVerticalLinesFromScoopedData(scoopedData) {
+  var index = scoopedData.index;
+  var points = scoopedData.slice();
+
+  return points.reduce(function(lines, x) {
+    var prevLine = lines.slice(-1)[0];
+    if (prevLine && x === prevLine.slice(-1)[0] + 100) {
+      prevLine.push(x);
+    } else {
+      lines.push([x]);
+    }
+    return lines;
+  }, []);
+}
+
+function lineDetection(char1) {
+  clearCanvas(context1);
+  drawChar(context1, char1, '#f00');
+
+  var scooping = scoopOut(context1);
+  drawPointsInContext(context1, scooping.scooped, [0, 0, 255]);
+  // removing everything inside
+  drawPointsInContext(context1, scooping.fillins, [255, 255, 255]);
+
+  var horizontal = detectHorizontalLinesFromScoopedData(scooping.scooped);
+  var horizontalPoints = horizontal.reduce(function(res, line) {
+    if (line.length > 5) {
+      return res.concat(line);
+    }
+    return res;
+  }, []);
+  var vertical = detectVerticalLinesFromScoopedData(toVerticalData(scooping.scooped));
+  var verticalPoints = vertical.reduce(function(res, line) {
+    if (line.length > 5) {
+      return res.concat(line);
+    }
+    return res;
+  }, []);
+  clearCanvas(context2);
+  drawPointsInContext(context2, horizontalPoints, [255, 0, 0])
+  drawPointsInContext(context2, verticalPoints, [255, 0, 0])
 }
