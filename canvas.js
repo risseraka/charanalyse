@@ -98,7 +98,7 @@ function getSimplifiedImageDataWithIndex(imageData) {
 
   eachPoints(imageData.data, function (el, i, data) {
     if (!isPointBlank(data, i)) {
-      index[i / 4] = simplified.push(i / 4);
+      index[i / 4] = simplified.push(i / 4) - 1;
     }
   });
   simplified.index = index;
@@ -251,7 +251,7 @@ function dissectChar(context, char1, next) {
         visited[x] = true;
 
         toVisit = toVisit.concat(getAround(notVisited, x));
-        index[x] = form.push(x);
+        index[x] = form.push(x) - 1;
       }
       // console.log('visited:', visited);
       // console.log('notVisited:', notVisited);
@@ -888,8 +888,8 @@ function scaleForm(context, form) {
   console.log(form);
 
   var xs = form.reduce(
-      function (xs, x) {
-        x = x % 100;
+      function (xs, coord) {
+        var x = simplifiedX(coord);
         x > xs.max && (xs.max = x);
         x < xs.min && (xs.min = x);
         return xs;
@@ -1051,9 +1051,9 @@ function scoopFromSimplifiedData(data) {
       ) || // down
       isOnCanvasBorder(coord)
     ) {
-      scoopedIndex[coord] = scooped.push(coord);
+      scoopedIndex[coord] = scooped.push(coord) - 1;
     } else {
-      fillinsIndex[coord] = fillins.push(coord);
+      fillinsIndex[coord] = fillins.push(coord) - 1;
     }
   });
   console.log('scooped.length:', scooped.length);
@@ -1215,6 +1215,65 @@ function toVerticalData(simplifiedData) {
   });
 }
 
+var clockWiseOrder = [
+  1, // right
+  100 + 1, // down right
+  100, // down
+  100 - 1, // down left
+  -1, // left
+  -100 - 1, // up left
+  -100, // up
+  -100 + 1, // up right
+  0 // center
+];
+
+function getNextClockWise(data, start, visited) {
+  var index = data.index;
+
+  return clockWiseOrder.reduce(function (res, delta) {
+    if (res !== undefined) return res;
+
+    var next = start + delta;
+    if (index[next] !== undefined && next !== visited) {
+      return next;
+    }
+  }, undefined);
+}
+
+function scoopedDataToLines(scoopedData) {
+  var index = scoopedData.index;
+  var points = scoopedData.slice();
+  var total = points.length;
+
+  var lines = [];
+  var pushed = 0;
+  while (pushed < total) {
+    var start;
+    points.some(function(coord, i, points) {
+      start = coord;
+      delete points[i];
+      delete index[start];
+      pushed += 1;
+      return true;
+    });
+    if (start === undefined) break;
+
+    var line = [start];
+    var next = start;
+    do {
+      next = getNextClockWise(scoopedData, next, line.slice(-2)[0]);
+      if (next !== start) {
+        line.push(next);
+        delete points[index[next]];
+        delete index[next];
+        pushed += 1;
+      }
+    } while (next !== start && next !== undefined);
+    lines.push(line);
+  }
+  return lines;
+}
+
 function borderDetection(char1) {
   clearCanvas(context1);
   drawChar(context1, char1, '#f00');
@@ -1283,9 +1342,15 @@ function detectVerticalLinesFromScoopedData(scoopedData) {
 
   return points.reduce(function (lines, x) {
     var prevLine = lines.slice(-1)[0];
-    if (prevLine && x === prevLine.slice(-1)[0] + 100) {
+    if (
+      prevLine &&
+      x === prevLine.slice(-1)[0] + 100
+    ) {
       prevLine.push(x);
     } else {
+      if (prevLine && prevLine.length > 1) {
+        drawPointsInContext(context2, prevLine, [255, 0, 0]);
+      }
       lines.push([x]);
     }
     return lines;
@@ -1297,14 +1362,14 @@ function lineDetection(char1) {
 
   var horizontal = detectHorizontalLinesFromScoopedData(scooped);
   var horizontalPoints = horizontal.reduce(function (res, line) {
-    if (line.length > 5) {
+    if (line.length > 1) {
       return res.concat(line);
     }
     return res;
   }, []);
   var vertical = detectVerticalLinesFromScoopedData(toVerticalData(scooped));
   var verticalPoints = vertical.reduce(function (res, line) {
-    if (line.length > 5) {
+    if (line.length > 1) {
       return res.concat(line);
     }
     return res;
@@ -1416,10 +1481,11 @@ function formNormalisation(char1) {
         res[y] === undefined && (res[y] = [], res.length = y + 1);
         res[y].push(point);
         return res;
-      }, []).map(function(line, y) {
+      }, []).reduce(function(res, line, y) {
         if (line) {
-          return [[line[0][0], y], [line.slice(-1)[0][0], y]]
+          res.push([[line[0][0], y], [line.slice(-1)[0][0], y]]);
         }
+        return res;
       });
       console.log(vec);
     });
