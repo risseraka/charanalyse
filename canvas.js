@@ -922,6 +922,7 @@ function compareHaiBu(char1, char2, next) {
 }
 
 var yong = '永';
+var hui = '回';
 var pairs = [
   ['字', '学'],
   ['蓝', '孟'],
@@ -1050,6 +1051,17 @@ function scoopOut(context) {
   };
 }
 
+function scoopChar(context, char1) {
+  clearCanvas(context);
+  drawChar(context, char1, '#f00');
+
+  var scooping = scoopOut(context);
+  drawPointsInContext(context, scooping.scooped, [0, 0, 255]);
+  // removing everything inside
+  drawPointsInContext(context, scooping.fillins, [255, 255, 255]);
+  return scooping.scooped;
+}
+
 function arePointsAdjacent(a, b) {
   var diff = b - a;
   return diff === 0 - 1 || // left
@@ -1062,7 +1074,7 @@ function arePointsAdjacent(a, b) {
     diff === -100 - 1 // down left;
 }
 
-if (false) // STD-BY
+/* STD-BY
 function scoopedOutToLine(scooped) {
   scooped = scooped.slice();
   if (scooped.length < 2) return scooped;
@@ -1090,6 +1102,7 @@ function scoopedOutToLine(scooped) {
   }
   return lines;
 }
+*/
 
 function printLine(line) {
   var printable = line.map(function (xy) {
@@ -1122,14 +1135,9 @@ function getHorizontalBorders(scoopedData) {
 }
 
 function borderDetection(char1) {
-  drawChar(context1, char1, '#f00');
+  var scooped = scoopChar(context1, char1);
 
-  var scooping = scoopOut(context1);
-  drawPointsInContext(context1, scooping.scooped, [0, 0, 255]);
-  // removing everything inside
-  drawPointsInContext(context1, scooping.fillins, [255, 255, 255]);
-
-  var lines = getHorizontalBorders(scooping.scooped);
+  var lines = getHorizontalBorders(scooped);
   var points = lines.reduce(function (res, line) {
     console.log(
       line[0] % 100, Math.floor(line[0] / 100), ':',
@@ -1164,15 +1172,9 @@ function detectEdgesFromScoopedData(scoopedData) {
 }
 
 function edgeDetection(char1) {
-  clearCanvas(context1);
-  drawChar(context1, char1, '#f00');
+  var scooped = scoopChar(context1, char1);
 
-  var scooping = scoopOut(context1);
-  drawPointsInContext(context1, scooping.scooped, [0, 0, 255]);
-  // removing everything inside
-  drawPointsInContext(context1, scooping.fillins, [255, 255, 255]);
-
-  window.edges = detectEdgesFromScoopedData(scooping.scooped);
+  window.edges = detectEdgesFromScoopedData(scooped);
   clearCanvas(context2);
   drawPointsInContext(context2, edges, [255, 0, 0])
 }
@@ -1229,22 +1231,16 @@ function detectVerticalLinesFromScoopedData(scoopedData) {
 }
 
 function lineDetection(char1) {
-  clearCanvas(context1);
-  drawChar(context1, char1, '#f00');
+  var scooped = scoopChar(context1, char1);
 
-  var scooping = scoopOut(context1);
-  drawPointsInContext(context1, scooping.scooped, [0, 0, 255]);
-  // removing everything inside
-  drawPointsInContext(context1, scooping.fillins, [255, 255, 255]);
-
-  var horizontal = detectHorizontalLinesFromScoopedData(scooping.scooped);
+  var horizontal = detectHorizontalLinesFromScoopedData(scooped);
   var horizontalPoints = horizontal.reduce(function(res, line) {
     if (line.length > 5) {
       return res.concat(line);
     }
     return res;
   }, []);
-  var vertical = detectVerticalLinesFromScoopedData(toVerticalData(scooping.scooped));
+  var vertical = detectVerticalLinesFromScoopedData(toVerticalData(scooped));
   var verticalPoints = vertical.reduce(function(res, line) {
     if (line.length > 5) {
       return res.concat(line);
