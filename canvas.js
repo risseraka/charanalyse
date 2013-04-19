@@ -45,7 +45,7 @@ function getCanvasData(context, w, h) {
 function getSimplifiedImageData(imageData) {
   var simplified = [];
 
-  eachPoints(imageData.data, function(el, i, data) {
+  eachPoints(imageData.data, function (el, i, data) {
     if (!isPointBlank(data, i)) {
       simplified.push(i / 4);
     }
@@ -57,7 +57,7 @@ function getSimplifiedImageDataWithIndex(imageData) {
   var simplified = [];
   var index = {};
 
-  eachPoints(imageData.data, function(el, i, data) {
+  eachPoints(imageData.data, function (el, i, data) {
     if (!isPointBlank(data, i)) {
       simplified.push(i / 4);
       index[i / 4] = true;
@@ -136,7 +136,7 @@ function drawBothChars(car1, car2, next) {
 }
 
 function printSimplifiedData(data) {
-  var lines = data.reduce(function(result, el) {
+  var lines = data.reduce(function (result, el) {
     var xy = getXY(el * 4);
     if (!result[xy[1]]) {
       result[xy[1]] = [];
@@ -145,8 +145,8 @@ function printSimplifiedData(data) {
     return result;
   }, {});
 
-  Object.keys(lines).forEach(function(i) {
-    console.log('y:', i, '|', lines[i].reduce(function(str, point) {
+  Object.keys(lines).forEach(function (i) {
+    console.log('y:', i, '|', lines[i].reduce(function (str, point) {
       return str + (str ? ' ' : '') + point;
     }, ''));
   });
@@ -168,7 +168,7 @@ function getCommon(car1, car2, next) {
 }
 
 function highlightCommon(char1, char2) {
-  getCommon(char1, char2, function(common) {
+  getCommon(char1, char2, function (common) {
     drawPointsInContext(context1, common, [255, 200, 150], getCanvasData(context1).data);
     drawPointsInContext(context2, common, [150, 200, 255], getCanvasData(context2).data);
   });
@@ -200,7 +200,7 @@ function dissectChar(context, char1, next) {
   drawChar(context, char1, '#f00', function (context) {
     var img = getCanvasData(context);
     var dataIndex = {};
-    eachPoints(img.data, function(el, i, data) {
+    eachPoints(img.data, function (el, i, data) {
       data[i + 0] = (data[i + 0] < 200) ? 0 : 255;
       data[i + 1] = 0;
       data[i + 2] = 0;
@@ -243,7 +243,7 @@ function dissectChar(context, char1, next) {
     // console.log(forms.length, forms);
 
     if (DEBUG)
-    forms.forEach(function(form, i) {
+    forms.forEach(function (form, i) {
       drawPointsInContext(
         context,
         form,
@@ -784,8 +784,8 @@ function dissectCharOLD(char1) {
 
 function compareForms(form1, form2) {
   var common = intersect(
-    form1.sort(function(a, b){return a - b;}),
-    form2.sort(function(a, b){return a - b;})
+    form1.sort(function (a, b){return a - b;}),
+    form2.sort(function (a, b){return a - b;})
   );
 
   drawPointsInContext(context3, common, [0, 255, 0]);
@@ -803,13 +803,13 @@ function compareForms(form1, form2) {
 var DEBUG = false;
 function compareCharForms(char1, char2, next) {
   clearCanvas(context1);
-  dissectChar(context1, char1, function(forms1) {
+  dissectChar(context1, char1, function (forms1) {
     clearCanvas(context2);
-    dissectChar(context2, char2, function(forms2) {
+    dissectChar(context2, char2, function (forms2) {
       var matches = [];
 
-      forms1.slice(0, 1).forEach(function(form1, i1) {
-        forms2.slice(0, 1).forEach(function(form2, i2) {
+      forms1.slice(0, 1).forEach(function (form1, i1) {
+        forms2.slice(0, 1).forEach(function (form2, i2) {
           intersection = compareForms(form1, form2);
           var common = intersection.common;
           var match1 = intersection.match1;
@@ -842,9 +842,9 @@ function compareCharForms(char1, char2, next) {
 }
 
 function drawAllChars(chars, rate) {
-  var funcs = Array.prototype.slice.call(chars).map(function(char1) {
-    return function(callback) {
-      setTimeout(function() {
+  var funcs = Array.prototype.slice.call(chars).map(function (char1) {
+    return function (callback) {
+      setTimeout(function () {
         clearCanvas(context1);
 
         dissectChar(context1, char1);
@@ -867,11 +867,11 @@ function scaleForm(context, form) {
   clearCanvas(scaleContext);
   // context.save();
 
-  form = form.slice().sort(function(a, b) { return a - b; });
+  form = form.slice().sort(function (a, b) { return a - b; });
   console.log(form);
 
   var xs = form.reduce(
-      function(xs, x) {
+      function (xs, x) {
         x = x % 100;
         x > xs.max && (xs.max = x);
         x < xs.min && (xs.min = x);
@@ -894,8 +894,8 @@ function scaleForm(context, form) {
 }
 
 function compareHaiBu(char1, char2, next) {
-  dissectChar(context1, '还', function(forms1) {
-    dissectChar(context2, '不', function(forms2) {
+  dissectChar(context1, '还', function (forms1) {
+    dissectChar(context2, '不', function (forms2) {
       scaleForm(context3, forms1[1]);
       scaleForm(context4, forms2[0].concat(forms2[1]));
 
@@ -908,8 +908,8 @@ function compareHaiBu(char1, char2, next) {
 }
 
 function compareHaiBu(char1, char2, next) {
-  dissectChar(context1, '还', function(forms1) {
-    dissectChar(context2, '不', function(forms2) {
+  dissectChar(context1, '还', function (forms1) {
+    dissectChar(context2, '不', function (forms2) {
       scaleForm(context3, forms1[1]);
       scaleForm(context4, forms2[0].concat(forms2[1]));
 
@@ -921,6 +921,7 @@ function compareHaiBu(char1, char2, next) {
   });
 }
 
+var yong = '永';
 var pairs = [
   ['字', '学'],
   ['蓝', '孟'],
@@ -930,7 +931,7 @@ var pairs = [
 ];
 
 function tata() {
-  drawBothChars(pairs[0][0], pairs[0][1], function(img1, img2) {
+  drawBothChars(pairs[0][0], pairs[0][1], function (img1, img2) {
   });
 }
 
@@ -940,8 +941,8 @@ function compareZiXue(char1, char2, next) {
   char2 = pairs[2][1];
   drawChar(context3, char1, '0f0');
   drawChar(context4, char2, '0f0');
-  dissectChar(context1, char1, function(forms1) {
-    dissectChar(context2, char2, function(forms2) {
+  dissectChar(context1, char1, function (forms1) {
+    dissectChar(context2, char2, function (forms2) {
       if (false) {
         if (forms1.length >= 1) {
           scaleForm(context3, forms1.slice(-1)[0]);
@@ -962,7 +963,7 @@ function compareZiXue(char1, char2, next) {
 function filterRGB(data, rgb) {
   var points = [];
 
-  eachPoints(data, function(r, i, data) {
+  eachPoints(data, function (r, i, data) {
     if (
       data[i] === rgb[0] &&
       data[i + 1] === rgb[1] &&
@@ -1082,7 +1083,7 @@ function scoopedOutToLine(scooped) {
 }
 
 function printLine(line) {
-  var printable = line.map(function(xy) {
+  var printable = line.map(function (xy) {
     return [xy % 100, Math.floor(xy / 100)]
   }).join(' | ');
   console.log(printable);
