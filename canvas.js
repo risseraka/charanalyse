@@ -1189,7 +1189,7 @@ function detectHorizontalLinesFromScoopedData(scoopedData) {
   var index = scoopedData.index;
   var points = scoopedData.slice();
 
-  return points.reduce(function(lines, x) {
+  return points.reduce(function (lines, x) {
     var prevLine = lines.slice(-1)[0];
     if (prevLine && x === prevLine.slice(-1)[0] + 1) {
       prevLine.push(x);
@@ -1204,7 +1204,7 @@ function toVerticalData(simplifiedData) {
   var data = simplifiedData.slice();
   data.index = simplifiedData.index;
 
-  return data.sort(function(a, b) {
+  return data.sort(function (a, b) {
     // horizontal diff
     return a % 100 - b % 100 ||
       // vertical diff
@@ -1216,7 +1216,7 @@ function detectVerticalLinesFromScoopedData(scoopedData) {
   var index = scoopedData.index;
   var points = scoopedData.slice();
 
-  return points.reduce(function(lines, x) {
+  return points.reduce(function (lines, x) {
     var prevLine = lines.slice(-1)[0];
     if (prevLine && x === prevLine.slice(-1)[0] + 100) {
       prevLine.push(x);
@@ -1231,14 +1231,14 @@ function lineDetection(char1) {
   var scooped = scoopChar(context1, char1);
 
   var horizontal = detectHorizontalLinesFromScoopedData(scooped);
-  var horizontalPoints = horizontal.reduce(function(res, line) {
+  var horizontalPoints = horizontal.reduce(function (res, line) {
     if (line.length > 5) {
       return res.concat(line);
     }
     return res;
   }, []);
   var vertical = detectVerticalLinesFromScoopedData(toVerticalData(scooped));
-  var verticalPoints = vertical.reduce(function(res, line) {
+  var verticalPoints = vertical.reduce(function (res, line) {
     if (line.length > 5) {
       return res.concat(line);
     }
@@ -1270,7 +1270,7 @@ function eachLineMode(scoopedData, func) {
 function testEachLineMode(char1) {
   var scooped = scoopChar(context1, char1);
 
-  eachLineMode(scooped, function(line) {
+  eachLineMode(scooped, function (line) {
     // ?
   });
 }
@@ -1301,7 +1301,7 @@ function enterAndGoToMiddle(char1) {
   var startMiddleEnd = horizontal[0];
   var baseY = Math.floor(startMiddleEnd / 100);
 
-  middleLine.forEach(function(point) {
+  middleLine.forEach(function (point) {
     var vertical = sliceSimplifiedDataFromPoint(verticalData, point, 1, 2);
     var middleEnd = vertical[0];
     console.log(vertical);
@@ -1310,5 +1310,75 @@ function enterAndGoToMiddle(char1) {
 
       drawPointsInContext(context1, [point, middleMiddle, middleEnd], [255, 0, 0]);
     }
+  });
+}
+
+function simplifiedX(coord) {
+  return coord % 100;
+}
+
+function simplifiedY(coord) {
+  return Math.floor(coord / 100);
+}
+
+function simplifiedPointToString(coord) {
+  return '(' + simplifiedX(coord) + ',' + simplifiedY(coord) + ')';
+}
+
+function simplifiedDataToCoord(simplifiedData) {
+  var start = simplifiedData[0];
+  var startX = simplifiedX(start);
+  var startY = simplifiedY(start);
+
+  return simplifiedData.map(function (coord) {
+      return [simplifiedX(coord) - startX, simplifiedY(coord) - startY];
+  });
+}
+
+function formNormalisation(char1) {
+  dissectChar(context1, char1, function (forms) {
+    forms.forEach(function (form, i) {
+      if (i > 0) { return; }
+      form.sort(function (a,b) { return a - b; });
+
+      clearCanvas(context2);
+      drawPointsInContext(context2, form, [0, 0, 255]);
+      scoopContext(context2);
+
+      console.log(form);
+
+      console.log(
+        simplifiedPointToString(form[0]),
+        ':',
+        simplifiedPointToString(form.slice(-1)[0])
+      );
+
+      var xyForm = simplifiedDataToCoord(form);
+
+      var previous = 0;
+      console.log(
+        '|' + xyForm.map(function (point) {
+          var str = point.join(',');
+          if (point[1] > previous) {
+            str += '\n';
+            previous = point[1];
+          }
+          return str;
+        }).join('|')
+      );
+
+      var vec = xyForm.reduce(function (res, point) {
+        var x = point[0];
+        var y = point[1];
+        res[y] === undefined && (res[y] = [], res.length = y + 1);
+        res[y].push(point);
+        return res;
+      }, []).map(function(line, y) {
+        if (line) {
+          return [[line[0][0], y], [line.slice(-1)[0][0], y]]
+        }
+      });
+      console.log(vec);
+    });
   });
 }
