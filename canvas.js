@@ -59,8 +59,7 @@ function getSimplifiedImageDataWithIndex(imageData) {
 
   eachPoints(imageData.data, function (el, i, data) {
     if (!isPointBlank(data, i)) {
-      simplified.push(i / 4);
-      index[i / 4] = true;
+      index[i / 4] = simplified.push(i / 4);
     }
   });
   simplified.index = index;
@@ -175,7 +174,7 @@ function highlightCommon(char1, char2) {
 }
 
 function pushIfWithin(arr, arr2, el) {
-  if (arr2.index[el]) {
+  if (arr2.index[el] >= 0) {
     arr.push(el);
   }
 }
@@ -199,20 +198,15 @@ function dissectChar(context, char1, next) {
   clearCanvas(context);
   drawChar(context, char1, '#f00', function (context) {
     var img = getCanvasData(context);
-    var dataIndex = {};
     eachPoints(img.data, function (el, i, data) {
       data[i + 0] = (data[i + 0] < 200) ? 0 : 255;
       data[i + 1] = 0;
       data[i + 2] = 0;
       data[i + 3] = (data[i + 3] < 254) ? 0 : 255;
-      if (data[i + 0]) {
-        dataIndex[i / 4] = true;
-      }
     });
     context.putImageData(img, 0, 0);
 
-    var data = getSimplifiedImageData(getCanvasData(context));
-    data.index = dataIndex;
+    var data = getSimplifiedImageDataWithIndex(getCanvasData(context));
 
     //console.log(data);
 
@@ -222,6 +216,7 @@ function dissectChar(context, char1, next) {
     var notVisited = data;
     while (notVisited.length > 0) {
       var form = [];
+      var index = {};
       var edge = notVisited.shift();
 
       if (visited[edge]) continue;
@@ -234,7 +229,7 @@ function dissectChar(context, char1, next) {
         visited[x] = true;
 
         toVisit = toVisit.concat(getAround(notVisited, x));
-        form.push(x);
+        index[x] = form.push(x);
       }
       // console.log('visited:', visited);
       // console.log('notVisited:', notVisited);
@@ -1014,10 +1009,8 @@ function isOnCanvasBorder(coord) {
     y === 100;
 }
 
-function scoopOut(context) {
-  var data = getSimplifiedImageDataWithIndex(getCanvasData(context));
-
-  console.log('data.length:', data.length);
+function scoopFromSimplifiedData(data) {
+ console.log('data.length:', data.length);
   var scooped = [];
   var fillins = [];
   var scoopedIndex = {};
@@ -1029,18 +1022,16 @@ function scoopOut(context) {
   data.forEach(function (coord) {
     if (
       !(
-        index[coord - 1] && // left
-        index[coord - 100] && // up
-        index[coord + 1] && // right
-        index[coord + 100]
+        index[coord - 1] >= 0 && // left
+        index[coord - 100] >= 0 && // up
+        index[coord + 1] >= 0 && // right
+        index[coord + 100] >= 0
       ) || // down
       isOnCanvasBorder(coord)
     ) {
-      scooped.push(coord);
-      scoopedIndex[coord] = true;
+      scoopedIndex[coord] = scooped.push(coord);
     } else {
-      fillins.push(coord);
-      fillinsIndex[coord] = true;
+      fillinsIndex[coord] = fillins.push(coord);
     }
   });
   console.log('scooped.length:', scooped.length);
@@ -1051,15 +1042,21 @@ function scoopOut(context) {
   };
 }
 
-function scoopChar(context, char1) {
-  clearCanvas(context);
-  drawChar(context, char1, '#f00');
+function scoopContext(context) {
+  var data = getSimplifiedImageDataWithIndex(getCanvasData(context));
 
-  var scooping = scoopOut(context);
+  var scooping = scoopFromSimplifiedData(data);
   drawPointsInContext(context, scooping.scooped, [0, 0, 255]);
   // removing everything inside
   drawPointsInContext(context, scooping.fillins, [255, 255, 255]);
   return scooping.scooped;
+}
+
+function scoopChar(context, char1) {
+  clearCanvas(context);
+  drawChar(context, char1, '#f00');
+
+  return scoopContext(context);
 }
 
 function arePointsAdjacent(a, b) {
@@ -1124,7 +1121,7 @@ function getHorizontalBorders(scoopedData) {
     // end is on the same line as start
     if (Math.floor(start / 100) !== Math.floor(end / 100)) {
       // previous's right point is blank
-      if (!index[previous + 1]) {
+      if (index[previous + 1] === undefined) {
         lines.push([start, previous]);
         start = points.shift();
       }
@@ -1182,7 +1179,7 @@ function edgeDetection(char1) {
 function getHorizontalLine(simplifiedData, start) {
   var index = simplifiedData.index;
   var line = [];
-  for (; index[start]; start += 1) {
+  for (; index[start] >= 0; start += 1) {
     line.push(start);
   }
   return line;
