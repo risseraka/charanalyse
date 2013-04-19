@@ -1003,6 +1003,16 @@ function compareFormsAtPos(char1, pos1, char2, pos2) {
   });
 }
 
+function isOnCanvasBorder(coord) {
+  var y = Math.floor(coord / 100);
+  var x = coord % 100;
+
+  return x === 0 ||
+    x === 100 ||
+    y === 0 ||
+    y === 100;
+}
+
 function scoopOut(context) {
   var data = getSimplifiedImageDataWithIndex(getCanvasData(context));
 
@@ -1015,22 +1025,21 @@ function scoopOut(context) {
   fillins.index = fillinsIndex;
 
   var index = data.index;
-  data.forEach(function(x) {
+  data.forEach(function (coord) {
     if (
-      index[x - 1] && // left
-      index[x - 100 - 1] && // up left
-      index[x - 100] && // up
-      index[x - 100 + 1] && // up right
-      index[x + 1] && // right
-      index[x + 100 + 1] && // down right
-      index[x + 100] && // down
-      index[x + 100 - 1] // down left
+      !(
+        index[coord - 1] && // left
+        index[coord - 100] && // up
+        index[coord + 1] && // right
+        index[coord + 100]
+      ) || // down
+      isOnCanvasBorder(coord)
     ) {
-      fillins.push(x);
-      fillinsIndex[x] = true;
+      scooped.push(coord);
+      scoopedIndex[coord] = true;
     } else {
-      scooped.push(x);
-      scoopedIndex[x] = true;
+      fillins.push(coord);
+      fillinsIndex[coord] = true;
     }
   });
   console.log('scooped.length:', scooped.length);
