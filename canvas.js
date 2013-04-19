@@ -1251,3 +1251,67 @@ function lineDetection(char1) {
   drawPointsInContext(context2, horizontalPoints, [255, 0, 0])
   drawPointsInContext(context2, verticalPoints, [255, 0, 0])
 }
+
+/* STD-BY
+function eachLineMode(scoopedData, func) {
+  var index = scoopedData.index;
+  var totalLength = scoopedData.length;
+
+  var data = scoopedData.slice();
+  while (totalLength) {
+    var start = data.shift();
+    var next = start;
+    do {
+      if (data[0] === next + 1) {
+        next = data.shift();
+        func(next)
+      }
+    } while (next !== start);
+  }
+}
+
+function testEachLineMode(char1) {
+  var scooped = scoopChar(context1, char1);
+
+  eachLineMode(scooped, function(line) {
+    // ?
+  });
+}
+*/
+
+function sliceSimplifiedDataFromPoint(simplifiedData, start, i1, i2) {
+  var index = simplifiedData.indexOf(start);
+  if (index === -1) {
+    return [];
+  }
+
+  return simplifiedData.slice(index + i1, index + i2);
+}
+
+function enterAndGoToMiddle(char1) {
+  var scoopedData = scoopChar(context1, char1);
+  var verticalData = toVerticalData(scoopedData);
+
+  var lineStart = scoopedData[0];
+
+  var line = getHorizontalLine(scoopedData, lineStart);
+  var lineEnd = line[line.length - 1];
+  var middleStart = (lineStart + lineEnd) / 2;
+  var middleLine = getHorizontalLine(scoopedData, middleStart);
+  var vertical = sliceSimplifiedDataFromPoint(verticalData, middleStart, 1, 2);
+  var middleEnd = vertical[0];
+  var horizontal = sliceSimplifiedDataFromPoint(scoopedData, middleEnd, -1, 0);
+  var startMiddleEnd = horizontal[0];
+  var baseY = Math.floor(startMiddleEnd / 100);
+
+  middleLine.forEach(function(point) {
+    var vertical = sliceSimplifiedDataFromPoint(verticalData, point, 1, 2);
+    var middleEnd = vertical[0];
+    console.log(vertical);
+    if (Math.floor(middleEnd / 100) === baseY) {
+      var middleMiddle = (point + middleEnd) / 2
+
+      drawPointsInContext(context1, [point, middleMiddle, middleEnd], [255, 0, 0]);
+    }
+  });
+}
