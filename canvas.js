@@ -42,6 +42,45 @@ function getCanvasData(context, w, h) {
   );
 }
 
+function printSimplifiedData(data) {
+  var lines = data.reduce(function (result, el) {
+    var xy = getXY(el * 4);
+    if (!result[xy[1]]) {
+      result[xy[1]] = [];
+    }
+    result[xy[1]].push(xy[0]);
+    return result;
+  }, {});
+
+  Object.keys(lines).forEach(function (i) {
+    console.log('y:', i, '|', lines[i].reduce(function (str, point) {
+      return str + (str ? ' ' : '') + point;
+    }, ''));
+  });
+}
+
+function simplifiedX(coord) {
+  return coord % 100;
+}
+
+function simplifiedY(coord) {
+  return Math.floor(coord / 100);
+}
+
+function simplifiedPointToString(coord) {
+  return '(' + simplifiedX(coord) + ',' + simplifiedY(coord) + ')';
+}
+
+function simplifiedDataToCoord(simplifiedData) {
+  var start = simplifiedData[0];
+  var startX = simplifiedX(start);
+  var startY = simplifiedY(start);
+
+  return simplifiedData.map(function (coord) {
+      return [simplifiedX(coord) - startX, simplifiedY(coord) - startY];
+  });
+}
+
 function getSimplifiedImageData(imageData) {
   var simplified = [];
 
@@ -132,23 +171,6 @@ function drawBothChars(car1, car2, next) {
       typeof next === 'function' && next(img1, img2);
     }
   );
-}
-
-function printSimplifiedData(data) {
-  var lines = data.reduce(function (result, el) {
-    var xy = getXY(el * 4);
-    if (!result[xy[1]]) {
-      result[xy[1]] = [];
-    }
-    result[xy[1]].push(xy[0]);
-    return result;
-  }, {});
-
-  Object.keys(lines).forEach(function (i) {
-    console.log('y:', i, '|', lines[i].reduce(function (str, point) {
-      return str + (str ? ' ' : '') + point;
-    }, ''));
-  });
 }
 
 function getCommon(car1, car2, next) {
@@ -1108,6 +1130,23 @@ function printLine(line) {
   console.log(printable);
 }
 
+function drawBordersAndMiddles(borders, data) {
+  var points = borders.reduce(function (res, borders) {
+    console.log(
+      simplifiedX(borders[0]), simplifiedY(borders[0]), ':',
+      simplifiedX(borders[1]), simplifiedY(borders[1])
+    );
+    return res.concat(borders);
+  }, []);
+  drawPointsInContext(context2, points, [0, 0, 0]);
+
+  var middles = borders.map(function (borders) {
+    return Math.floor((simplifiedX(borders[0]) + simplifiedX(borders[1])) / 2) +
+      Math.round((simplifiedY(borders[0]) + simplifiedY(borders[1])) / 2) * 100;
+  });
+  drawPointsInContext(context2, middles, [255, 0, 0]);
+}
+
 function getHorizontalBorders(simplifiedData) {
   var points = simplifiedData.slice();
   var borders = [];
@@ -1164,21 +1203,16 @@ function getVerticalBorders(simplifiedData) {
   return borders;
 }
 
-function drawBordersAndMiddles(borders, data) {
-  var points = borders.reduce(function (res, borders) {
-    console.log(
-      simplifiedX(borders[0]), simplifiedY(borders[0]), ':',
-      simplifiedX(borders[1]), simplifiedY(borders[1])
-    );
-    return res.concat(borders);
-  }, []);
-  drawPointsInContext(context2, points, [0, 0, 0]);
+function toVerticalData(simplifiedData) {
+  var data = simplifiedData.slice();
+  data.index = simplifiedData.index;
 
-  var middles = borders.map(function (borders) {
-    return Math.floor((simplifiedX(borders[0]) + simplifiedX(borders[1])) / 2) +
-      Math.round((simplifiedY(borders[0]) + simplifiedY(borders[1])) / 2) * 100;
+  return data.sort(function (a, b) {
+    // horizontal diff
+    return simplifiedX(a) - simplifiedX(b) ||
+      // vertical diff
+      simplifiedY(a) - simplifiedY(b);
   });
-  drawPointsInContext(context2, middles, [255, 0, 0]);
 }
 
 function borderDetection(char1) {
@@ -1241,18 +1275,6 @@ function detectHorizontalLinesFromScoopedData(scoopedData) {
     }
     return lines;
   }, []);
-}
-
-function toVerticalData(simplifiedData) {
-  var data = simplifiedData.slice();
-  data.index = simplifiedData.index;
-
-  return data.sort(function (a, b) {
-    // horizontal diff
-    return a % 100 - b % 100 ||
-      // vertical diff
-      Math.floor(a / 100) - Math.floor(b / 100)
-  })
 }
 
 function detectVerticalLinesFromScoopedData(scoopedData) {
@@ -1353,28 +1375,6 @@ function enterAndGoToMiddle(char1) {
 
       drawPointsInContext(context1, [point, middleMiddle, middleEnd], [255, 0, 0]);
     }
-  });
-}
-
-function simplifiedX(coord) {
-  return coord % 100;
-}
-
-function simplifiedY(coord) {
-  return Math.floor(coord / 100);
-}
-
-function simplifiedPointToString(coord) {
-  return '(' + simplifiedX(coord) + ',' + simplifiedY(coord) + ')';
-}
-
-function simplifiedDataToCoord(simplifiedData) {
-  var start = simplifiedData[0];
-  var startX = simplifiedX(start);
-  var startY = simplifiedY(start);
-
-  return simplifiedData.map(function (coord) {
-      return [simplifiedX(coord) - startX, simplifiedY(coord) - startY];
   });
 }
 
