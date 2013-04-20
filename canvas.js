@@ -1156,56 +1156,60 @@ function drawBordersAndMiddles(context2, borders) {
 }
 
 function getHorizontalBorders(simplifiedData) {
+  var index = simplifiedData.index;
   var points = simplifiedData.slice();
   var borders = [];
-  var index = simplifiedData.index;
 
-  var start = points.shift();
+  var start, end;
   while (points.length > 0) {
-    // if start right point is blank, continue
-    if (index[start + 1] === undefined) {
+    do {
       start = points.shift();
-      continue;
-    }
+    } while (
+      // if start right point is blank, skip it
+      index[start + 1] === undefined &&
+      points.length > 0
+    );
 
-    var end = points.shift();
-    // end is on the same line as start
-    if (simplifiedY(start) === simplifiedY(end)) {
-      // end's right point is blank
-      if (index[end + 1] === undefined) {
-        borders.push([start, end]);
-        start = points.shift();
-      }
-    } else {
-      start = end;
+    if (points.length === 0) break;
+
+    do {
+      end = points.shift();
+    } while (
+      // end's right point is not blank
+      index[end + 1] !== undefined
+    );
+    if (start !== end) {
+      borders.push([start, end]);
     }
   }
   return borders;
 }
 
 function getVerticalBorders(simplifiedData) {
+  var index = simplifiedData.index;
   var points = simplifiedData.slice();
   var borders = [];
-  var index = simplifiedData.index;
 
-  var start = points.shift();
+  var start, end;
   while (points.length > 0) {
-    // if start down point is blank, continue
-    if (index[start + 100] === undefined) {
+    do {
       start = points.shift();
-      continue;
-    }
+    } while (
+      // if start down point is blank, skip it
+      index[start + 100] === undefined &&
+      points.length > 0
+    );
 
-    var end = points.shift();
-    // end is on the same column as start
-    if (simplifiedX(start) === simplifiedX(end)) {
-      // end's down point is blank, line is complete
-      if (index[end + 100] === undefined) {
-        borders.push([start, end]);
-        start = points.shift();
-      }
-    } else {
-      start = end;
+    if (points.length === 0) break;
+
+    do {
+      end = points.shift();
+    } while (
+      // end's down point is not blank
+      index[end + 100] !== undefined
+    );
+    if (start !== end) {
+      borders.push([start, end]);
     }
   }
   return borders;
@@ -1298,12 +1302,23 @@ function borderDetection(char1) {
   clearCanvas(context1);
   drawChar(context1, char1, '#f00');
   var simplifiedData = getSimplifiedImageDataWithIndex(getCanvasData(context1));
+  return borderDetectionFromSimplifiedData(simplifiedData);
+}
 
-  clearCanvas(context2);
-  var borders = getHorizontalBorders(simplifiedData);
-  drawBordersAndMiddles(borders, simplifiedData);
-  var borders = getVerticalBorders(toVerticalData(simplifiedData));
-  drawBordersAndMiddles(borders, simplifiedData);
+function dissectAndDetectBorder(channel, char1, i) {
+  var context2 = window['context' + (+channel)];
+  dissectChar(context2, char1, function(forms) {
+    i = i || 0;
+    forms.slice(i, i + 1).forEach(function (form) {
+      var context4 = window['context' + (+channel + 2)];
+      scaleForm(context4, form);
+      var simplifiedData = getSimplifiedImageDataWithIndex(getCanvasData(context4));
+      var context6 = window['context' + (+channel + 4)];
+      drawBordersAndMiddles(context6,
+        borderDetectionFromSimplifiedData(simplifiedData)
+      );
+    });
+  });
 }
 
 function detectEdgesFromScoopedData(scoopedData) {
@@ -1324,12 +1339,12 @@ function detectEdgesFromScoopedData(scoopedData) {
   }, []);
 }
 
-function edgeDetection(char1) {
+function edgeDetection(context1, char1) {
   var scooped = scoopChar(context1, char1);
 
   window.edges = detectEdgesFromScoopedData(scooped);
   clearCanvas(context2);
-  drawPointsInContext(context2, edges, [255, 0, 0])
+  drawPointsInContext(context2, edges, [255, 0, 0]);
 }
 
 function getHorizontalLine(simplifiedData, start) {
