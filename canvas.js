@@ -226,14 +226,16 @@ function getAround(data, start) {
 function dissectChar(context, char1, next) {
   clearCanvas(context);
   drawChar(context, char1, '#f00', function (context) {
-    var img = getCanvasData(context);
-    eachPoints(img.data, function (el, i, data) {
-      data[i + 0] = (data[i + 0] < 200) ? 0 : 255;
-      data[i + 1] = 0;
-      data[i + 2] = 0;
-      data[i + 3] = (data[i + 3] < 254) ? 0 : 255;
-    });
-    context.putImageData(img, 0, 0);
+    if (false) {
+      var img = getCanvasData(context);
+      eachPoints(img.data, function (el, i, data) {
+        data[i + 0] = (data[i + 0] < 200) ? 0 : 255;
+        data[i + 1] = 0;
+        data[i + 2] = 0;
+        data[i + 3] = (data[i + 3] < 254) ? 0 : 255;
+      });
+      context.putImageData(img, 0, 0);
+    }
 
     var data = getSimplifiedImageDataWithIndex(getCanvasData(context));
 
@@ -262,7 +264,8 @@ function dissectChar(context, char1, next) {
       }
       // console.log('visited:', visited);
       // console.log('notVisited:', notVisited);
-      forms.push(form);
+      form.index = index;
+      forms.push(toHorizontalData(form));
     }
     // console.log(forms.length, forms);
 
@@ -1206,6 +1209,18 @@ function getVerticalBorders(simplifiedData) {
     }
   }
   return borders;
+}
+
+function toHorizontalData(simplifiedData) {
+  var data = simplifiedData.slice();
+  data.index = simplifiedData.index;
+
+  return data.sort(function (a, b) {
+    // horizontal diff
+    return simplifiedY(a) - simplifiedY(b) ||
+      // vertical diff
+      simplifiedX(a) - simplifiedX(b);
+  });
 }
 
 function toVerticalData(simplifiedData) {
