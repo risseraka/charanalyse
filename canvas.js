@@ -1031,6 +1031,73 @@ function compareFormsAtPos(char1, pos1, char2, pos2) {
   });
 }
 
+var clockWiseOrder = [
+  -100, // up
+  -100 + 1, // up right
+  1, // right
+  100 + 1, // down right
+  100, // down
+  100 - 1, // down left
+  -1, // left
+  -100 - 1, // up left
+  0 // center
+];
+
+function getNextClockWise(data, start, visited) {
+  var index = data.index;
+
+  return clockWiseOrder.reduce(function (res, delta) {
+    if (res !== undefined) return res;
+
+    var next = start + delta;
+    if (index[next] !== undefined && next !== visited) {
+      return next;
+    }
+  }, undefined);
+}
+
+function scoopedDataToLines(scoopedData) {
+  var index = scoopedData.index;
+  var points = scoopedData.slice();
+  var total = points.length;
+
+  var lines = [];
+  var pushed = 0;
+  while (pushed < total) {
+    var start;
+    points.some(function(coord, i, points) {
+      start = coord;
+      delete points[i];
+      delete index[start];
+      pushed += 1;
+      return true;
+    });
+    if (start === undefined) break;
+
+    var line = [start];
+    var next = start;
+    do {
+      next = getNextClockWise(scoopedData, next, line.slice(-2)[0]);
+      if (next !== start) {
+        line.push(next);
+        delete points[index[next]];
+        delete index[next];
+        pushed += 1;
+      }
+    } while (next !== start && next !== undefined);
+    lines.push(line);
+  }
+  return lines;
+}
+
+function scoopCharToLines(char1) {
+   var scooped = scoopChar(context1, char1);
+   var lines = scoopedDataToLines(scooped);
+   lines.forEach(function(line) {
+     drawPointsInContext(context1, line, [255, 0, 0])
+   });
+}
+
 function isOnCanvasBorder(coord) {
   var y = Math.floor(coord / 100);
   var x = coord % 100;
@@ -1237,73 +1304,6 @@ function toVerticalData(simplifiedData) {
       // vertical diff
       simplifiedY(a) - simplifiedY(b);
   });
-}
-
-var clockWiseOrder = [
-  -100, // up
-  -100 + 1, // up right
-  1, // right
-  100 + 1, // down right
-  100, // down
-  100 - 1, // down left
-  -1, // left
-  -100 - 1, // up left
-  0 // center
-];
-
-function getNextClockWise(data, start, visited) {
-  var index = data.index;
-
-  return clockWiseOrder.reduce(function (res, delta) {
-    if (res !== undefined) return res;
-
-    var next = start + delta;
-    if (index[next] !== undefined && next !== visited) {
-      return next;
-    }
-  }, undefined);
-}
-
-function scoopedDataToLines(scoopedData) {
-  var index = scoopedData.index;
-  var points = scoopedData.slice();
-  var total = points.length;
-
-  var lines = [];
-  var pushed = 0;
-  while (pushed < total) {
-    var start;
-    points.some(function(coord, i, points) {
-      start = coord;
-      delete points[i];
-      delete index[start];
-      pushed += 1;
-      return true;
-    });
-    if (start === undefined) break;
-
-    var line = [start];
-    var next = start;
-    do {
-      next = getNextClockWise(scoopedData, next, line.slice(-2)[0]);
-      if (next !== start) {
-        line.push(next);
-        delete points[index[next]];
-        delete index[next];
-        pushed += 1;
-      }
-    } while (next !== start && next !== undefined);
-    lines.push(line);
-  }
-  return lines;
-}
-
-function scoopCharToLines(char1) {
-   var scooped = scoopChar(context1, char1);
-   var lines = scoopedDataToLines(scooped);
-   lines.forEach(function(line) {
-     drawPointsInContext(context1, line, [255, 0, 0])
-   });
 }
 
 function borderDetectionFromSimplifiedData(simplifiedData) {
