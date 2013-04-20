@@ -112,11 +112,18 @@ function series() {
   function loop() {
     var func = funcs.shift();
 
-    if (!func) return end();
+    if (!func) return typeof end === 'function' && end();
 
     setTimeout(func.bind(this, loop), 0);
   }
   loop();
+}
+
+function toCallback(func) {
+  return function (callback) {
+    func();
+    typeof callback === 'function' && callback();
+  };
 }
 
 // hidden scaling helper canvas
