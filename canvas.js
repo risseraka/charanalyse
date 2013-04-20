@@ -1240,14 +1240,14 @@ function toVerticalData(simplifiedData) {
 }
 
 var clockWiseOrder = [
+  -100, // up
+  -100 + 1, // up right
   1, // right
   100 + 1, // down right
   100, // down
   100 - 1, // down left
   -1, // left
   -100 - 1, // up left
-  -100, // up
-  -100 + 1, // up right
   0 // center
 ];
 
@@ -1298,7 +1298,21 @@ function scoopedDataToLines(scoopedData) {
   return lines;
 }
 
-function borderDetection(char1) {
+function scoopCharToLines(char1) {
+   var scooped = scoopChar(context1, char1);
+   var lines = scoopedDataToLines(scooped);
+   lines.forEach(function(line) {
+     drawPointsInContext(context1, line, [255, 0, 0])
+   });
+}
+
+function borderDetectionFromSimplifiedData(simplifiedData) {
+  var horiz = getHorizontalBorders(simplifiedData);
+  var verti = getVerticalBorders(toVerticalData(simplifiedData));
+  return horiz.concat(verti);
+}
+
+function borderDetectionChar(context1, char1) {
   clearCanvas(context1);
   drawChar(context1, char1, '#f00');
   var simplifiedData = getSimplifiedImageDataWithIndex(getCanvasData(context1));
