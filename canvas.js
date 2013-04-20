@@ -186,11 +186,11 @@ function getCommon(car1, car2, next) {
       data1 = getSimplifiedImageData(img1),
       data2 = getSimplifiedImageData(img2);
 
-    console.log(data1, data2);
+    // console.log(data1, data2);
     common = intersect(data1, data2);
     printSimplifiedData(common);
-    //console.log('commons:', str);
-    console.log('total:', common.length);
+    // console.log('commons:', str);
+    // console.log('total:', common.length);
     typeof next === 'function' && next(common);
   });
 }
@@ -444,7 +444,7 @@ function getGun2(data, offset) {
   ) {
     last = getPixelLineFrom(data, start);
     line = (last - start) / 4;
-    console.log(start, last, ':', line, lastLine);
+    // console.log(start, last, ':', line, lastLine);
     if (
       last === start ||
       (
@@ -505,7 +505,7 @@ function getYi2(data, offset) {
   ) {
     last = getPixelLineFrom(data, start);
     line = (last - start) / 4;
-    console.log(start, last, ':', line, lastLine);
+    // console.log(start, last, ':', line, lastLine);
     if (
       last === start ||
       (
@@ -533,7 +533,7 @@ function testIfYi(context, car) {
     var img = getCanvasData(context),
       data = img.data;
 
-    console.log(data);
+    // console.log(data);
     getYi(data);
   });
 }
@@ -568,7 +568,7 @@ function getForm(data, start) {
   var i = 0;
   while (notVisited.length > 0) {
     current = notVisited.shift();
-    //console.log(current);
+    // console.log(current);
     visited[current] = true;
 
     if (!isPointBlank(data, current)) {
@@ -631,7 +631,7 @@ function getFirstForm(context, data, next) {
     return;
   }
 
-  console.log(form);
+  // console.log(form);
 
   var lines = form.reduce(
     function (lines, pos) {
@@ -674,13 +674,13 @@ function getForms(context, car, next) {
       var img = getCanvasData(context),
         data = img.data;
 
-      console.log(data);
+      // console.log(data);
       consumeForms(
         context,
         data,
         [],
         function (forms) {
-          console.log(forms);
+          // console.log(forms);
           next(forms);
         }
       );
@@ -710,7 +710,7 @@ function compareCharsOLD(char1, char2) {
   getForms(context1, char1, function (forms1) {
     getForms(context2, char2, function (forms2) {
       var common = intersect(forms1[0], forms2[0]);
-      console.log(common);
+      // console.log(common);
     });
   });
 }
@@ -780,7 +780,7 @@ function dissectCharOLD(char1) {
       edges = getEdges(data),
       forms = [];
 
-    console.log(data, edges);
+    // console.log(data, edges);
 
     edges.forEach(
       function (i) {
@@ -801,7 +801,7 @@ function dissectCharOLD(char1) {
         }
       }
     );
-    console.log(forms);
+    // console.log(forms);
     drawForms(forms);
    });
 }
@@ -892,7 +892,7 @@ function scaleForm(context, form) {
   // context.save();
 
   form = form.slice().sort(function (a, b) { return a - b; });
-  console.log(form);
+  // console.log(form);
 
   var xs = form.reduce(
       function (xs, coord) {
@@ -906,7 +906,7 @@ function scaleForm(context, form) {
     maxY = Math.floor(form[form.length - 1] / 100),
     minY = Math.floor(form[0] / 100);
 
-  console.log('x:(', xs.min, ',', xs.max, '), y:(', minY, ',', maxY, ')');
+  // console.log('x:(', xs.min, ',', xs.max, '), y:(', minY, ',', maxY, ')');
   drawPointsInContext(scaleContext, form, [255, 0, 0]);
   // context.scale(Math.floor(1000 / xs.max) / 10, Math.floor(1000 / maxY) / 10);
   context.drawImage(
@@ -926,7 +926,7 @@ function compareHaiBu(char1, char2, next) {
       var form1 = getSimplifiedImageData(getCanvasData(context3));
       var form2 = getSimplifiedImageData(getCanvasData(context4));
       window.intersection = compareForms(form1, form2);
-      console.log(intersection);
+      // console.log(intersection);
     });
   });
 }
@@ -940,7 +940,7 @@ function compareHaiBu(char1, char2, next) {
       var form1 = getSimplifiedImageData(getCanvasData(context3));
       var form2 = getSimplifiedImageData(getCanvasData(context4));
       window.intersection = compareForms(form1, form2);
-      console.log(intersection);
+      // console.log(intersection);
     });
   });
 }
@@ -980,7 +980,7 @@ function compareZiXue(char1, char2, next) {
       var form1 = getSimplifiedImageData(getCanvasData(context3));
       var form2 = getSimplifiedImageData(getCanvasData(context4));
       window.intersection = compareForms(form1, form2);
-      console.log(intersection);
+      // console.log(intersection);
     });
   });
 }
@@ -1010,7 +1010,7 @@ function compareFormsAtPos(char1, pos1, char2, pos2) {
         var form1 = getSimplifiedImageData(getCanvasData(context3));
         var form2 = getSimplifiedImageData(getCanvasData(context4));
         window.intersection = compareForms(form1, form2);
-        console.log(intersection);
+        // console.log(intersection);
 
         window.exclusion1 = filterRGB(getCanvasData(context3).data, [255, 0, 0]);
         window.exclusion2 = filterRGB(getCanvasData(context4).data, [255, 0, 0]);
@@ -1039,7 +1039,6 @@ function isOnCanvasBorder(coord) {
 }
 
 function scoopFromSimplifiedData(data) {
- console.log('data.length:', data.length);
   var scooped = [];
   var fillins = [];
   var scoopedIndex = {};
@@ -1063,8 +1062,6 @@ function scoopFromSimplifiedData(data) {
       fillinsIndex[coord] = fillins.push(coord) - 1;
     }
   });
-  console.log('scooped.length:', scooped.length);
-  console.log('fillins.length:', fillins.length);
   return {
     scooped: scooped,
     fillins: fillins
@@ -1137,8 +1134,9 @@ function printLine(line) {
   console.log(printable);
 }
 
-function drawBordersAndMiddles(borders, data) {
+function drawBordersAndMiddles(context2, borders) {
   var points = borders.reduce(function (res, borders) {
+    if (DEBUG)
     console.log(
       simplifiedX(borders[0]), simplifiedY(borders[0]), ':',
       simplifiedX(borders[1]), simplifiedY(borders[1])
