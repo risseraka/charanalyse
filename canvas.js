@@ -223,19 +223,21 @@ function getAround(data, start) {
   return around;
 }
 
+function sanitize(context) {
+  var img = getCanvasData(context);
+  eachPoints(img.data, function (el, i, data) {
+    data[i + 0] = (data[i + 0] < 200) ? 0 : 255;
+    data[i + 1] = 0;
+    data[i + 2] = 0;
+    data[i + 3] = (data[i + 3] < 254) ? 0 : 255;
+  });
+  context.putImageData(img, 0, 0);
+}
+
 function dissectChar(context, char1, next) {
   clearCanvas(context);
   drawChar(context, char1, '#f00', function (context) {
-    if (false) {
-      var img = getCanvasData(context);
-      eachPoints(img.data, function (el, i, data) {
-        data[i + 0] = (data[i + 0] < 200) ? 0 : 255;
-        data[i + 1] = 0;
-        data[i + 2] = 0;
-        data[i + 3] = (data[i + 3] < 254) ? 0 : 255;
-      });
-      context.putImageData(img, 0, 0);
-    }
+    sanitize(context);
 
     var data = getSimplifiedImageDataWithIndex(getCanvasData(context));
 
