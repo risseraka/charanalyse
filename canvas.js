@@ -283,10 +283,10 @@ function dissectChar(context, char1, next) {
 }
 
 function isPointBlank(data, i) {
-  return data[i] === 0 &&
-    data[i + 1] === 0 &&
-    data[i + 2] === 0 ||
-    data[i + 3] === 0;
+  return data[i + 3] === 0 ||
+    data[i] === 255 &&
+    data[i + 1] === 255 &&
+    data[i + 2] === 255;
 }
 
 function getFirstPointHorizCond(data, start, cond) {
