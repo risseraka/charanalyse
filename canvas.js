@@ -1363,10 +1363,23 @@ function edgeDetection(context1, char1) {
   drawPointsInContext(context2, edges, [255, 0, 0]);
 }
 
-function getHorizontalLine(simplifiedData, start) {
+function getHorizontalLine(simplifiedData, start, left) {
+  left = left ? -1 : 1;
+
   var index = simplifiedData.index;
   var line = [];
-  for (; index[start] >= 0; start += 1) {
+  for (; index[start] >= 0; start += 1 * left) {
+    line.push(start);
+  }
+  return line;
+}
+
+function getVerticalLine(simplifiedData, start, up) {
+  up = up ? -1 : 1;
+
+  var index = simplifiedData.index;
+  var line = [];
+  for (; index[start] >= 0; start += 100 * up) {
     line.push(start);
   }
   return line;
