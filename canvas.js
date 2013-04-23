@@ -1555,3 +1555,51 @@ function formNormalisation(char1) {
     });
   });
 }
+
+function getFirstRectFromSimplifiedData(data) {
+  var start = data.shift();
+  var right = getHorizontalLine(data, start);
+    var rightDown = getVerticalLine(data, right.slice(-1)[0]);
+  var down = getVerticalLine(data, start);
+  var downRight = getHorizontalLine(data, down.slice(-1)[0]);
+  return [right, rightDown, down, downRight];
+}
+
+function getRectFromSimplifiedData(data) {
+  var rect = getFirstRectFromSimplifiedData(data);
+  if (DEBUG) {
+    drawPointsInContext(
+      context1,
+      rect.reduce(function(res, el) { return res.concat(el); }, []),
+      [0, 0, 255]
+    );
+  }
+  var lastRight = rect[1].slice(-1)[0];
+  var lastLeft = rect[3].slice(-1)[0];
+  if (lastLeft === lastRight) {
+    return 2;
+  } else if (
+    rect[1].indexOf(lastLeft) !== -1 ||
+    rect[3].indexOf(lastRight) !== -1
+  ) {
+    return 1;
+  }
+}
+
+function getSimplifiedDataFromChar(context, char1, sanitized) {
+  clearCanvas(context);
+  drawChar(context, char1, '#f00');
+  if (sanitized) {
+    sanitize(context);
+  }
+
+  return getSimplifiedImageDataWithIndex(getCanvasData(context));
+}
+
+function getRectFromChar(context, char1) {
+  clearCanvas(context);
+  drawChar(context, char1, '#f00');
+
+  var data = getSimplifiedImageDataWithIndex(getCanvasData(context));
+  return getRectFromSimplifiedData(data);
+}
