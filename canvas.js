@@ -1080,7 +1080,7 @@ function scoopedDataToLines(scoopedData) {
     var next = start;
     do {
       next = getNextClockWise(scoopedData, next, line.slice(-2)[0]);
-      if (next !== start) {
+      if (next !== start && next !== undefined) {
         line.push(next);
         delete points[index[next]];
         delete index[next];
