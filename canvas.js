@@ -1355,6 +1355,72 @@ function detectEdgesFromScoopedData(scoopedData) {
   }, []);
 }
 
+function detectEdgesFromSimplifiedData(data) {
+  var index = data.index;
+  var points = data.slice();
+
+  return points.reduce(function (edges, x) {
+    var around = getAround(data, x);
+    if (
+      around.length === 3
+    ) {
+      console.log(x);
+      edges.push(x);
+    }
+    return edges;
+  }, []);
+}
+
+function detectExtendedEdgesFromSimplifiedData(data) {
+  var index = data.index;
+  var points = data.slice();
+
+  return points.reduce(function (edges, x) {
+    var around = getAround(data, x);
+    if (
+      around.length <= 4
+    ) {
+      console.log(x);
+      edges.push(x);
+    }
+    return edges;
+  }, []);
+}
+
+function len(x, y){
+  return Math.sqrt(x * x + y * y);
+}
+
+function relativeAngleBetween(coord, coordA, coordB){
+  var x = simplifiedX(coord);
+  var y = simplifiedY(coord);
+  var x1 = simplifiedX(coordA) - x;
+  var y1 = simplifiedY(coordA) - y;
+  var x2 = simplifiedX(coordB) - x;
+  var y2 = simplifiedY(coordB) - y;
+  return Math.acos((x1 * x2 + y1 * y2) / (len(x1, y1) * len(x2, y2)));
+}
+
+function dissectScoopAndDetectEdges(context, char1) {
+  dissectChar(context, char1, function(forms) {
+    var scooped = scoopFromSimplifiedData(forms[1]).scooped;
+    console.log(scooped);
+    drawPointsInContext(context, scooped, [0, 0, 255]);
+    var lines = scoopedDataToLines(scooped);
+    var edges = lines[0].reduce(function(res, coord, i, scooped) {
+      var coordA = scooped[(i === 0 ? scooped.length : i) - 1]
+      var coordB = scooped[i + 1];
+
+      if (relativeAngleBetween(coord, coordA, coordB) === Math.PI / 2) {
+        res.push(coord);
+      }
+      return res;
+    }, []);
+    console.log(edges);
+    drawPointsInContext(context, edges, [0, 255, 0]);
+  });
+}
+
 function edgeDetection(context1, char1) {
   var scooped = scoopChar(context1, char1);
 
