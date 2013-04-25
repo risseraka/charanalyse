@@ -1163,15 +1163,11 @@ function scoopChar(context, char1) {
 }
 
 function arePointsAdjacent(a, b) {
-  var diff = b - a;
-  return diff === 0 - 1 || // left
-    diff === 100 - 1 || // up left
-    diff === 100 || // up
-    diff === 100 + 1 || // up right
-    diff === 0 + 1 || // right
-    diff === -100 + 1 || // down right
-    diff === -100 || // down;
-    diff === -100 - 1 // down left;
+  var diff = Math.abs(b - a);
+  return diff === 1 || // left or right
+    diff === 100 - 1 || // (up or down) left
+    diff === 100 || // up or down
+    diff === 100 + 1 // (up or down) right
 }
 
 /* STD-BY
