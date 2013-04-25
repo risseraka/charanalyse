@@ -1096,12 +1096,13 @@ function scoopedDataToLines(scoopedData) {
   return lines;
 }
 
-function scoopCharToLines(char1) {
-   var scooped = scoopChar(context1, char1);
+function scoopCharToLines(context, char1) {
+   var scooped = scoopChar(context, char1);
    var lines = scoopedDataToLines(scooped);
    lines.forEach(function(line) {
-     drawPointsInContext(context1, line, [255, 0, 0])
+     drawPointsInContext(context, line, [255, 0, 0]);
    });
+   return lines;
 }
 
 function isOnCanvasBorder(coord) {
