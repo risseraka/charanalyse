@@ -1697,3 +1697,74 @@ function getRectFromChar(context, char1) {
   var data = getSimplifiedImageDataWithIndex(getCanvasData(context));
   return getRectFromSimplifiedData(data);
 }
+
+function removeStraightLinesFromLineData(line) {
+  var index = line.index;
+
+  var prevAngle = Math.PI;
+  var prev;
+  return line.reduce(function (points, point, i, line) {
+    if (prev) {
+      var next = i < line.length - 1 ? line[i + 1] : line[0];
+      var angle = relativeAngleBetween(point, prev, next);
+      var rightAngle = prevAngle !== angle &&
+        Math.PI - angle !== 0;
+    }
+    if (!prev || rightAngle) {
+      points.push(point);
+    }
+    prev = point;
+    prevAngle = angle;
+    return points;
+  }, []);
+}
+
+function sanitizePointedLine(pointedLine) {
+  var prev;
+  return pointedLine.reduce(function (points, point, i, line) {
+    if (!prev || !arePointsAdjacent(prev, point)) {
+      points.push(point);
+    }
+    prev = point;
+    return points;
+  }, []);
+}
+
+function removeStraightLinesFromChar(context, char1) {
+  clearCanvas(context);
+  var lines = scoopCharToLines(context, char1);
+
+  drawPointsInContext(context2, flatten(lines), [255, 0, 0]);
+
+  var pointedLines = lines.map(function (line) {
+    return removeStraightLinesFromLineData(line);
+  });
+
+  drawPointsInContext(context2, flatten(pointedLines), [0, 0, 255]);
+
+  return pointedLines;
+}
+
+function incrementalStraightLineRemoval(context, char1) {
+  var lines = removeStraightLinesFromChar(context, char1);
+
+  var line = lines[1];
+
+  // return;
+  var pointedLine = sanitizePointedLine(line);
+  drawPointsInContext(context2, pointedLine, [0, 0, 255]);
+
+  pointedLine = line;
+
+  // return;
+  var prev = pointedLine;
+  var next = prev;
+  while (prev === next || next.length !== prev.length) {
+    prev = next;
+    next = removeStraightLinesFromLineData(prev);
+    console.log(prev.length, next.length);
+  }
+
+  drawPointsInContext(context2, next, [0, 0, 255]);
+  return next;
+}
