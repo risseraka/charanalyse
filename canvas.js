@@ -1167,7 +1167,13 @@ function arePointsAdjacent(a, b) {
   return diff === 1 || // left or right
     diff === 100 - 1 || // (up or down) left
     diff === 100 || // up or down
-    diff === 100 + 1 // (up or down) right
+    diff === 100 + 1; // (up or down) right
+}
+
+function arePointsOnSameLine(a, b) {
+  var diff = Math.abs(b - a);
+  return diff === 1 || // left or right
+    diff === 100; // up or down
 }
 
 /* STD-BY
@@ -1405,17 +1411,70 @@ function relativeAngleBetween(coord, coordA, coordB){
 function detectOrthoEdgesFromScoopedData(scooped) {
   var lines = scoopedDataToLines(scooped);
   var edges = lines.reduce(function (edges, line) {
-    return edges.concat(line.reduce(function(lineEdges, coord, i, scooped) {
-      var coordA = scooped[(i === 0 ? scooped.length : i) - 1]
-      var coordB = scooped[i + 1];
+    return edges.concat(
+      line.reduce(function(lineEdges, coord, i, scooped) {
+        var coordA = scooped[(i === 0 ? scooped.length : i) - 1];
+        var coordB = scooped[i + 1];
 
-      if (relativeAngleBetween(coord, coordA, coordB) <= Math.PI / 2) {
-        lineEdges.push(coord);
-      }
-      return lineEdges;
-    }, []));
+        if (relativeAngleBetween(coord, coordA, coordB) <= Math.PI / 2) {
+          lineEdges.push(coord);
+        }
+        return lineEdges;
+      }, [])
+    );
   }, []);
   console.log(edges);
+  return edges;
+}
+
+function detectOrthoLineEdgesFromScoopedData(scooped) {
+  var lines = scoopedDataToLines(scooped);
+  var edges = lines.slice(1, 2).reduce(function (edges, line) {
+    line = line.slice();
+
+    var start = line[0];
+    var lineEdges = [start];
+    while (line.length > 0) {
+      var coordA = coordB || line.shift();
+      var coordB = coordC || line.shift();
+      var coordC = coordD || line.shift();
+
+      var angleBAC = relativeAngleBetween(coordB, coordA, coordC);
+      while (angleBAC === Math.PI && line.length > 0) {
+        coordB = coordC;
+        coordC = line.shift();
+        angleBAC = relativeAngleBetween(coordB, coordA, coordC);
+      }
+
+      if (line.length > 0) {
+        var coordD = line.shift();
+        var angleCBD = relativeAngleBetween(coordC, coordB, coordD);
+        while (angleCBD === Math.PI && line.length > 0) {
+          coordC = coordD;
+          coordD = line.shift();
+          angleCBD = relativeAngleBetween(coordC, coordB, coordD);
+        }
+      }
+      if (line.length === 0) {
+        coordC = start;
+      }
+
+      if (relativeAngleBetween(coordB, coordA, coordC) <= Math.PI / 2) {
+        // pushing middle point
+        lineEdges.push(coordB);
+      }
+    }
+    return edges.concat(lineEdges);
+  }, []);
+  console.log(edges);
+  return edges;
+}
+
+function detectLineEdgesFromChar(context, char1) {
+  var scooped = getScoopedDataFromChar(context, char1);
+  drawPointsInContext(context1, scooped, [0, 0, 255]);
+  var edges = detectOrthoLineEdgesFromScoopedData(scooped);
+  drawPointsInContext(context1, edges, [0, 255, 0]);
   return edges;
 }
 
@@ -1435,6 +1494,11 @@ function getSimplifiedDataFromChar(context, char1, sanitized) {
   }
 
   return getSimplifiedImageDataWithIndex(getCanvasData(context));
+}
+
+function getScoopedDataFromChar(context, char1, sanitized) {
+  var data = getSimplifiedDataFromChar(context, char1, sanitized);
+  return scoopFromSimplifiedData(data).scooped;
 }
 
 function scoopAndDetectEdgesFromChar(context, char1) {
