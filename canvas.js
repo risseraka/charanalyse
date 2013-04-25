@@ -152,6 +152,7 @@ function drawChar(context, car, color, next) {
   context.font = '100px Microsoft Yahei';
   context.fillStyle = color;
   context.fillText(car, 0, 80);
+  sanitize(context);
 
   typeof next === 'function' && next(context);
 }
