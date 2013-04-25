@@ -1663,12 +1663,21 @@ function getFirstRectFromSimplifiedData(data) {
   return [right, rightDown, down, downRight];
 }
 
+function flatten(arr) {
+  return arr.reduce(
+    function(res, el) {
+      return res.concat(el);
+    },
+    []
+  );
+}
+
 function getRectFromSimplifiedData(data) {
   var rect = getFirstRectFromSimplifiedData(data);
   if (DEBUG) {
     drawPointsInContext(
       context1,
-      rect.reduce(function(res, el) { return res.concat(el); }, []),
+      flatten(rect),
       [0, 0, 255]
     );
   }
