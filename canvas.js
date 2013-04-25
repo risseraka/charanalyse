@@ -1337,7 +1337,7 @@ function dissectAndDetectBorder(channel, char1, i) {
   });
 }
 
-function detectEdgesFromScoopedData(scoopedData) {
+function detectSimplisticEdgesFromScoopedData(scoopedData) {
   var index = scoopedData.index;
   var points = scoopedData.slice();
 
@@ -1401,30 +1401,58 @@ function relativeAngleBetween(coord, coordA, coordB){
   return Math.acos((x1 * x2 + y1 * y2) / (len(x1, y1) * len(x2, y2)));
 }
 
-function dissectScoopAndDetectEdges(context, char1) {
-  dissectChar(context, char1, function(forms) {
-    var scooped = scoopFromSimplifiedData(forms[1]).scooped;
-    console.log(scooped);
-    drawPointsInContext(context, scooped, [0, 0, 255]);
-    var lines = scoopedDataToLines(scooped);
-    var edges = lines[0].reduce(function(res, coord, i, scooped) {
+function detectOrthoEdgesFromScoopedData(scooped) {
+  var lines = scoopedDataToLines(scooped);
+  var edges = lines.reduce(function (edges, line) {
+    return edges.concat(line.reduce(function(lineEdges, coord, i, scooped) {
       var coordA = scooped[(i === 0 ? scooped.length : i) - 1]
       var coordB = scooped[i + 1];
 
-      if (relativeAngleBetween(coord, coordA, coordB) === Math.PI / 2) {
-        res.push(coord);
+      if (relativeAngleBetween(coord, coordA, coordB) <= Math.PI / 2) {
+        lineEdges.push(coord);
       }
-      return res;
-    }, []);
-    console.log(edges);
-    drawPointsInContext(context, edges, [0, 255, 0]);
+      return lineEdges;
+    }, []));
+  }, []);
+  console.log(edges);
+  return edges;
+}
+
+function scoopAndDetectEdgesFromSimplifiedData(context, data) {
+  var scooped = scoopFromSimplifiedData(data).scooped;
+  drawPointsInContext(context, scooped, [0, 0, 255]);
+  var edges = detectOrthoEdgesFromScoopedData(scooped);
+  drawPointsInContext(context, edges, [0, 255, 0]);
+  return edges;
+}
+
+function getSimplifiedDataFromChar(context, char1, sanitized) {
+  clearCanvas(context);
+  drawChar(context, char1, '#f00');
+  if (sanitized) {
+    sanitize(context);
+  }
+
+  return getSimplifiedImageDataWithIndex(getCanvasData(context));
+}
+
+function scoopAndDetectEdgesFromChar(context, char1) {
+  var data = getSimplifiedDataFromChar(context1, char1);
+  var edges = scoopAndDetectEdgesFromSimplifiedData(context, data);
+  return edges;
+}
+
+function dissectScoopAndDetectEdges(context, char1) {
+  dissectChar(context, char1, function(forms) {
+    var edges = scoopAndDetectEdgesFromSimplifiedData(context, forms[1]);
+    drawPointsInContext(context2, edges, [255, 0, 0]);
   });
 }
 
 function edgeDetection(context1, char1) {
   var scooped = scoopChar(context1, char1);
 
-  window.edges = detectEdgesFromScoopedData(scooped);
+  window.edges = detectSimplisticEdgesFromScoopedData(scooped);
   clearCanvas(context2);
   drawPointsInContext(context2, edges, [255, 0, 0]);
 }
@@ -1650,16 +1678,6 @@ function getRectFromSimplifiedData(data) {
   ) {
     return 1;
   }
-}
-
-function getSimplifiedDataFromChar(context, char1, sanitized) {
-  clearCanvas(context);
-  drawChar(context, char1, '#f00');
-  if (sanitized) {
-    sanitize(context);
-  }
-
-  return getSimplifiedImageDataWithIndex(getCanvasData(context));
 }
 
 function getRectFromChar(context, char1) {
