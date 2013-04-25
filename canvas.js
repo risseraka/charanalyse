@@ -1065,6 +1065,9 @@ function scoopedDataToLines(scoopedData) {
   var total = points.length;
 
   var lines = [];
+  var linesIndex = {};
+  lines.index = linesIndex;
+
   var pushed = 0;
   while (pushed < total) {
     var start;
@@ -1082,7 +1085,7 @@ function scoopedDataToLines(scoopedData) {
     do {
       next = getNextClockWise(scoopedData, next, line.slice(-2)[0]);
       if (next !== start && next !== undefined) {
-        line.push(next);
+        linesIndex = line.push(next) - 1;
         delete points[index[next]];
         delete index[next];
         pushed += 1;
