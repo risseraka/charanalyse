@@ -1069,7 +1069,7 @@ function scoopedDataToLines(scoopedData) {
   var pushed = 0;
   while (pushed < total) {
     var start;
-    points.some(function(coord, i, points) {
+    points.some(function (coord, i, points) {
       start = coord;
       delete points[i];
       delete index[start];
@@ -1100,7 +1100,7 @@ function scoopedDataToLines(scoopedData) {
 function scoopCharToLines(context, char1) {
    var scooped = scoopChar(context, char1);
    var lines = scoopedDataToLines(scooped);
-   lines.forEach(function(line) {
+   lines.forEach(function (line) {
      drawPointsInContext(context, line, [255, 0, 0]);
    });
    return lines;
@@ -1331,7 +1331,7 @@ function borderDetectionChar(context1, char1) {
 
 function dissectAndDetectBorder(channel, char1, i) {
   var context2 = window['context' + (+channel)];
-  dissectChar(context2, char1, function(forms) {
+  dissectChar(context2, char1, function (forms) {
     i = i || 0;
     forms.slice(i, i + 1).forEach(function (form) {
       var context4 = window['context' + (+channel + 2)];
@@ -1421,7 +1421,7 @@ function detectOrthoEdgesFromScoopedData(scooped) {
   var lines = scoopedDataToLines(scooped);
   var edges = lines.reduce(function (edges, line) {
     return edges.concat(
-      line.reduce(function(lineEdges, coord, i, scooped) {
+      line.reduce(function (lineEdges, coord, i, scooped) {
         var coordA = scooped[(i === 0 ? scooped.length : i) - 1];
         var coordB = scooped[i + 1];
 
@@ -1510,9 +1510,9 @@ function detectEdgesByConsumingCurvesFromChar(context, char1) {
   var lines = scoopCharToLines(context, char1);
   var linesCurves = consumeCurvedLinesFromScoopedLines(lines);
   var edges = linesCurves.reduce(
-    function(edges, curves) {
+    function (edges, curves) {
       return edges.concat(
-        curves.map(function(curve) { return curve[0]; })
+        curves.map(function (curve) { return curve[0]; })
       );
     },
     []
@@ -1609,7 +1609,7 @@ function scoopAndDetectEdgesFromChar(context, char1) {
 }
 
 function dissectScoopAndDetectEdges(context, char1) {
-  dissectChar(context, char1, function(forms) {
+  dissectChar(context, char1, function (forms) {
     var edges = scoopAndDetectEdgesFromSimplifiedData(context, forms[1]);
     drawPointsInContext(context2, edges, [255, 0, 0]);
   });
@@ -1805,7 +1805,7 @@ function formNormalisation(char1) {
         res[y] === undefined && (res[y] = [], res.length = y + 1);
         res[y].push(point);
         return res;
-      }, []).reduce(function(res, line, y) {
+      }, []).reduce(function (res, line, y) {
         if (line) {
           res.push([[line[0][0], y], [line.slice(-1)[0][0], y]]);
         }
@@ -1827,7 +1827,7 @@ function getFirstRectFromSimplifiedData(data) {
 
 function flatten(arr) {
   return arr.reduce(
-    function(res, el) {
+    function (res, el) {
       return res.concat(el);
     },
     []
@@ -1962,7 +1962,7 @@ function getNextLine(points) {
 }
 
 function drawCharCenter(context1, char1, next) {
-  // next = next || function() {};
+  // next = next || function () {};
 
   drawChar(context1, char1, '#f00');
   var simplifiedData = getSimplifiedImageDataWithIndex(getCanvasData(context1));
