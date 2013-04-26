@@ -1399,6 +1399,14 @@ function len(x, y){
   return Math.sqrt(x * x + y * y);
 }
 
+function angleBetween(a, b, c, d) {
+  var x1 = simplifiedX(b) - simplifiedX(a);
+  var y1 = simplifiedY(b) - simplifiedY(a);
+  var x2 = simplifiedX(d) - simplifiedX(c);
+  var y2 = simplifiedY(d) - simplifiedY(c);
+  return Math.acos((x1 * x2 + y1 * y2) / (len(x1, y1) * len(x2, y2)));
+}
+
 function relativeAngleBetween(coord, coordA, coordB){
   var x = simplifiedX(coord);
   var y = simplifiedY(coord);
@@ -1428,6 +1436,90 @@ function detectOrthoEdgesFromScoopedData(scooped) {
   return edges;
 }
 
+function consumeStraightLineFromLine(line, ortho) {
+  var straight = [];
+
+  var prev;
+  var prevDelta, delta;
+  while (line.length > 0) {
+    point = line[0];
+    if (prev) {
+      delta = point - prev;
+    }
+    if (
+      point && prev && (
+        (ortho && !arePointsOnSameLine(prev, point)) ||
+        prevDelta && prevDelta !== delta
+      )
+    ) {
+      break;
+    }
+    straight.push(point);
+    prev = line.shift();
+    prevDelta = delta;
+  }
+  return straight;
+}
+
+function consumeCurvedLineFromLine(line) {
+  var curved = [];
+  do {
+    curved = curved.concat(consumeStraightLineFromLine(line));
+
+    // get current curve last two points
+    var a = curved[curved.length - 2];
+    var b = curved[curved.length - 1];
+    // get next first two points
+    var c = line[0];
+    var d = line[1];
+
+    var angle;
+    if (d - c === b - a) {
+      angle = 0;
+    } else {
+      angle = angleBetween(b, a, b, c);
+      if (angle !== Math.PI / 2) {
+        angle = angleBetween(a, b, c, d);
+        if (angle !== Math.PI / 2) {
+          angle = 0;
+        }
+      }
+    }
+  } while (line.length > 0 && angle < 0.0001);
+  if (line.length > 0) {
+    line.unshift(curved[curved.length - 1]);
+  }
+  return curved;
+}
+
+function consumeCurvedLinesFromLine(line) {
+  var curves = [];
+  while (line.length > 0) {
+    var curved = consumeCurvedLineFromLine(line);
+    drawPointsInContext(context1, curved, [0, 255, 0]);
+    curves.push(curved);
+  }
+  return curves;
+}
+
+function consumeCurvedLinesFromScoopedLines(lines) {
+  return lines.map(consumeCurvedLinesFromLine);
+}
+
+function detectEdgesByConsumingCurvesFromChar(context, char1) {
+  var lines = scoopCharToLines(context, char1);
+  var linesCurves = consumeCurvedLinesFromScoopedLines(lines);
+  var edges = linesCurves.reduce(
+    function(edges, curves) {
+      return edges.concat(
+        curves.map(function(curve) { return curve[0]; })
+      );
+    },
+    []
+  );
+  drawPointsInContext(context1, edges, [0, 0, 255]);
+}
+
 function detectOrthoLineEdgesFromScoopedData(scooped) {
   var lines = scoopedDataToLines(scooped);
   var edges = lines.slice(1, 2).reduce(function (edges, line) {
@@ -1435,35 +1527,43 @@ function detectOrthoLineEdgesFromScoopedData(scooped) {
 
     var start = line[0];
     var lineEdges = [start];
+    var angle;
+    var lineAB = consumeStraightLineFromLine(line), lineCD;
+    var a, b, c, d, backup;
     while (line.length > 0) {
-      var coordA = coordB || line.shift();
-      var coordB = coordC || line.shift();
-      var coordC = coordD || line.shift();
+      a = lineAB[0];
+      b = lineAB[lineAB.length - 1];
+      lineCD = consumeStraightLineFromLine(line);
+      c = lineCD[0];
+      d = lineCD[lineCD.length - 1];
 
-      var angleBAC = relativeAngleBetween(coordB, coordA, coordC);
-      while (angleBAC === Math.PI && line.length > 0) {
-        coordB = coordC;
-        coordC = line.shift();
-        angleBAC = relativeAngleBetween(coordB, coordA, coordC);
+      drawPointsInContext(context1, lineAB.concat(lineCD), [0, 255, 0]);
+      if (
+        simplifiedX(d) < simplifiedX(c) ||
+        simplifiedY(d) < simplifiedY(c)
+      ) {
+        backup = d;
+        d = c;
+        c = backup;
+      } else if (
+        simplifiedX(b) < simplifiedX(a) ||
+        simplifiedY(b) < simplifiedY(a)
+      ) {
+        backup = d;
+        d = c;
+        c = backup;
       }
-
-      if (line.length > 0) {
-        var coordD = line.shift();
-        var angleCBD = relativeAngleBetween(coordC, coordB, coordD);
-        while (angleCBD === Math.PI && line.length > 0) {
-          coordC = coordD;
-          coordD = line.shift();
-          angleCBD = relativeAngleBetween(coordC, coordB, coordD);
-        }
-      }
-      if (line.length === 0) {
-        coordC = start;
-      }
-
-      if (relativeAngleBetween(coordB, coordA, coordC) <= Math.PI / 2) {
+      angle = angleBetween(a, b, c, d);
+      drawPointsInContext(context1, lineAB.concat(lineCD), [255, 0, 0]);
+      if (angle === 0) {
+        lineAB = lineAB.concat(lineCD);
+      } else if (angle <= Math.PI / 2) {
+        drawPointsInContext(context1, [b], [0, 0, 255]);
         // pushing middle point
-        lineEdges.push(coordB);
+        lineEdges.push(b);
+        lineAB = lineCD;
       }
+
     }
     return edges.concat(lineEdges);
   }, []);
@@ -1833,3 +1933,5 @@ function incrementalStraightLineRemoval(context, char1) {
   drawPointsInContext(context2, next, [0, 0, 255]);
   return next;
 }
+
+detectEdgesByConsumingCurvesFromChar(context1, yong);
