@@ -1131,8 +1131,8 @@ function scoopFromSimplifiedData(data) {
         index[coord - 1] >= 0 && // left
         index[coord - 100] >= 0 && // up
         index[coord + 1] >= 0 && // right
-        index[coord + 100] >= 0
-      ) || // down
+        index[coord + 100] >= 0 // down
+      ) ||
       isOnCanvasBorder(coord)
     ) {
       scoopedIndex[coord] = scooped.push(coord) - 1;
@@ -1935,3 +1935,71 @@ function incrementalStraightLineRemoval(context, char1) {
 }
 
 detectEdgesByConsumingCurvesFromChar(context1, yong);
+
+function getWidth(a, b) {
+  return Math.abs(simplifiedX(a) - simplifiedX(b));
+}
+
+function getHeight(a, b) {
+  return Math.abs(simplifiedY(a) - simplifiedY(b));
+}
+
+function getDistance(a, b) {
+  return Math.round(Math.sqrt(Math.pow(getWidth(a, b), 2) +
+    Math.pow(getHeight(a, b), 2)));
+}
+
+function getNextLine(points) {
+  var start = points.shift();
+
+  var front;
+  do {
+    front = points.shift();
+  } while (
+    points.index[front + 1] !== undefined
+  );
+  return [start, front];
+}
+
+function drawCharCenter(context1, char1, next) {
+  // next = next || function() {};
+
+  drawChar(context1, char1, '#f00');
+  var simplifiedData = getSimplifiedImageDataWithIndex(getCanvasData(context1));
+
+  var index = simplifiedData.index;
+  var points = simplifiedData.slice();
+  points.index = index;
+  var end = simplifiedData.slice(-1)[0];
+
+  var previousLine = getNextLine(points);
+  var previousStart = previousLine[0];
+  var previousFront = previousLine[1];
+
+  // do {
+  function getStartEnd() {
+    var line = getNextLine(points);
+    var start = line[0];
+    var front = line[1];
+    var distance = getDistance(start, front);
+    console.log(distance + ':', start, front);
+
+    var distanceA = getDistance(previousStart, front);
+    var distanceB = getDistance(start, previousFront);
+    var minDistance = Math.min(distance, distanceA, distanceB);
+    if (distance === minDistance) {
+      previousStart = start;
+      previousFront = front;
+    } else if (minDistance === distanceA) {
+      previousFront = front;
+    } else {
+      previousStart = start;
+    }
+    console.log(distance, distanceA, distanceB)
+
+    drawPointsInContext(context2, [previousStart, previousFront], [255, 0, 0]);
+    setTimeout((front !== end) ? getStartEnd : next, 33);
+  }
+  getStartEnd();
+  // while (front !== end);
+}
