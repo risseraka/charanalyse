@@ -918,7 +918,7 @@ function scaleForm(context, form) {
   context.drawImage(
     scaleContext.canvas,
     xs.min, minY,
-    xs.max - xs.min, maxY - minY,
+    xs.max - xs.min + 1, maxY - minY + 1,
     0, 0, 100, 100
   );
 }
