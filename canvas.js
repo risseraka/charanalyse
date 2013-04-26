@@ -217,6 +217,39 @@ function getAround(data, start) {
   return around;
 }
 
+var RGB = {
+  red: [255, 0, 0],
+  green: [0, 255, 0],
+  blue: [0, 0, 255],
+
+  black: [0, 0, 0],
+  white: [255, 255, 255]
+};
+
+function drawPointsInContext(context, points, rgb, data) {
+  points = points.slice();
+  var canvas = context.canvas;
+
+  !data && (data = getImageDataFromContext(context).data);
+  var imgd = context.createImageData(canvas.width, canvas.height),
+    data2 = imgd.data;
+
+  if (data)
+  forEach(data, function (el, i) {
+    data2[i] = el;
+  });
+  var isWhite = rgb[0] + rgb[1] + rgb[2] === 255 * 3;
+  points.forEach(function (el) {
+    el *= 4;
+    data2[el] = rgb[0];
+    data2[el + 1] = rgb[1];
+    data2[el + 2] = rgb[2];
+    // setting alpha to 0 if color is actually 'white'
+    data2[el + 3] = isWhite ? 0 : 255;
+  });
+  context.putImageData(imgd, 0, 0);
+}
+
 function sanitize(context, rgb) {
   var img = getImageDataFromContext(context);
   eachPoints(img.data, function (el, i, data) {
@@ -585,30 +618,6 @@ function getForm(data, start) {
   return form;
 }
 
-function drawPointsInContext(context, points, rgb, data) {
-  points = points.slice();
-  var canvas = context.canvas;
-
-  !data && (data = getImageDataFromContext(context).data);
-  var imgd = context.createImageData(canvas.width, canvas.height),
-    data2 = imgd.data;
-
-  if (data)
-  forEach(data, function (el, i) {
-    data2[i] = el;
-  });
-  var isWhite = rgb[0] + rgb[1] + rgb[2] === 255 * 3;
-  points.forEach(function (el) {
-    el *= 4;
-    data2[el] = rgb[0];
-    data2[el + 1] = rgb[1];
-    data2[el + 2] = rgb[2];
-    // setting alpha to 0 if color is actually 'white'
-    data2[el + 3] = isWhite ? 0 : 255;
-  });
-  context.putImageData(imgd, 0, 0);
-}
-
 function getFirstForm(context, data, next) {
   var start = getFirstPointPosCond(
       data,
@@ -647,7 +656,7 @@ function getFirstForm(context, data, next) {
   });
 
   setTimeout(function () {
-    drawPointsInContext(context, form, [0, 255, 0], data);
+    drawPointsInContext(context, form, RGB.green, data);
     next(data2, form);
   }, 1000);
 }
@@ -811,8 +820,8 @@ function compareForms(form1, form2) {
     form2.sort(function (a, b){return a - b;})
   );
 
-  drawPointsInContext(context3, common, [0, 255, 0]);
-  drawPointsInContext(context4, common, [0, 255, 0]);
+  drawPointsInContext(context3, common, RGB.green);
+  drawPointsInContext(context4, common, RGB.green);
 
   var match1 = Math.round(100 * common.length / form1.length);
   var match2 = Math.round(100 * common.length / form2.length);
@@ -906,7 +915,7 @@ function scaleForm(context, form) {
     minY = Math.floor(form[0] / 100);
 
   // console.log('x:(', xs.min, ',', xs.max, '), y:(', minY, ',', maxY, ')');
-  drawPointsInContext(scaleContext, form, [255, 0, 0]);
+  drawPointsInContext(scaleContext, form, RGB.red);
   // context.scale(Math.floor(1000 / xs.max) / 10, Math.floor(1000 / maxY) / 10);
   context.drawImage(
     scaleContext.canvas,
@@ -1011,17 +1020,17 @@ function compareFormsAtPos(char1, pos1, char2, pos2) {
         window.intersection = compareForms(form1, form2);
         // console.log(intersection);
 
-        window.exclusion1 = filterRGB(getImageDataFromContext(context3).data, [255, 0, 0]);
-        window.exclusion2 = filterRGB(getImageDataFromContext(context4).data, [255, 0, 0]);
+        window.exclusion1 = filterRGB(getImageDataFromContext(context3).data, RGB.red);
+        window.exclusion2 = filterRGB(getImageDataFromContext(context4).data, RGB.red);
         drawPointsInContext(
           context5,
           exclusion1,
-          [255, 0, 0]
+          RGB.red
         );
         drawPointsInContext(
           context6,
           exclusion2,
-          [255, 0, 0]
+          RGB.red
         );
     });
   });
@@ -1094,7 +1103,7 @@ function getLinesFromChar(context, char1) {
    var scooped = getScoopedDataFromChar(context, char1);
    var lines = getLinesFromScoopedData(scooped);
    lines.forEach(function (line) {
-     drawPointsInContext(context, line, [255, 0, 0]);
+     drawPointsInContext(context, line, RGB.red);
    });
    return lines;
 }
@@ -1143,9 +1152,9 @@ function getScoopedDataFromContext(context) {
   var data = getSimplifiedDataFromImageData(getImageDataFromContext(context));
 
   var scooping = getScoopingFromSimplifiedData(data);
-  drawPointsInContext(context, scooping.scooped, [0, 0, 255]);
+  drawPointsInContext(context, scooping.scooped, RGB.blue);
   // removing everything inside
-  drawPointsInContext(context, scooping.fillins, [255, 255, 255]);
+  drawPointsInContext(context, scooping.fillins, RGB.white);
   return scooping.scooped;
 }
 
@@ -1216,13 +1225,13 @@ function drawBordersAndMiddles(context2, borders) {
     );
     return res.concat(borders);
   }, []);
-  drawPointsInContext(context2, points, [0, 0, 0]);
+  drawPointsInContext(context2, points, RGB.black);
 
   var middles = borders.map(function (borders) {
     return Math.floor((simplifiedX(borders[0]) + simplifiedX(borders[1])) / 2) +
       Math.round((simplifiedY(borders[0]) + simplifiedY(borders[1])) / 2) * 100;
   });
-  drawPointsInContext(context2, middles, [255, 0, 0]);
+  drawPointsInContext(context2, middles, RGB.red);
 }
 
 function getHorizontalBorders(simplifiedData) {
@@ -1489,7 +1498,7 @@ function consumeCurvedLinesFromLine(line) {
   var curves = [];
   while (line.length > 0) {
     var curved = consumeCurvedLineFromLine(line);
-    drawPointsInContext(context1, curved, [0, 255, 0]);
+    drawPointsInContext(context1, curved, RGB.green);
     curves.push(curved);
   }
   return curves;
@@ -1530,7 +1539,7 @@ function detectOrthoLineEdgesFromScoopedData(scooped) {
       c = lineCD[0];
       d = lineCD[lineCD.length - 1];
 
-      drawPointsInContext(context1, lineAB.concat(lineCD), [0, 255, 0]);
+      drawPointsInContext(context1, lineAB.concat(lineCD), RGB.green);
       if (
         simplifiedX(d) < simplifiedX(c) ||
         simplifiedY(d) < simplifiedY(c)
@@ -1547,11 +1556,11 @@ function detectOrthoLineEdgesFromScoopedData(scooped) {
         c = backup;
       }
       angle = angleBetween(a, b, c, d);
-      drawPointsInContext(context1, lineAB.concat(lineCD), [255, 0, 0]);
+      drawPointsInContext(context1, lineAB.concat(lineCD), RGB.red);
       if (angle === 0) {
         lineAB = lineAB.concat(lineCD);
       } else if (angle <= Math.PI / 2) {
-        drawPointsInContext(context1, [b], [0, 0, 255]);
+        drawPointsInContext(context1, [b], RGB.blue);
         // pushing middle point
         lineEdges.push(b);
         lineAB = lineCD;
@@ -1566,17 +1575,17 @@ function detectOrthoLineEdgesFromScoopedData(scooped) {
 
 function detectLineEdgesFromChar(context, char1) {
   var scooped = getScoopedDataFromChar(context, char1);
-  drawPointsInContext(context1, scooped, [0, 0, 255]);
+  drawPointsInContext(context1, scooped, RGB.blue);
   var edges = detectOrthoLineEdgesFromScoopedData(scooped);
-  drawPointsInContext(context1, edges, [0, 255, 0]);
+  drawPointsInContext(context1, edges, RGB.green);
   return edges;
 }
 
 function scoopAndDetectEdgesFromSimplifiedData(context, data) {
   var scooped = getScoopingFromSimplifiedData(data).scooped;
-  drawPointsInContext(context, scooped, [0, 0, 255]);
+  drawPointsInContext(context, scooped, RGB.blue);
   var edges = detectOrthoEdgesFromScoopedData(scooped);
-  drawPointsInContext(context, edges, [0, 255, 0]);
+  drawPointsInContext(context, edges, RGB.green);
   return edges;
 }
 
@@ -1599,7 +1608,7 @@ function scoopAndDetectEdgesFromChar(context, char1) {
 function dissectScoopAndDetectEdges(context, char1) {
   dissectChar(context, char1, function (forms) {
     var edges = scoopAndDetectEdgesFromSimplifiedData(context, forms[1]);
-    drawPointsInContext(context2, edges, [255, 0, 0]);
+    drawPointsInContext(context2, edges, RGB.red);
   });
 }
 
@@ -1608,7 +1617,7 @@ function edgeDetection(context1, char1) {
 
   window.edges = detectSimplisticEdgesFromScoopedData(scooped);
   clearContext(context2);
-  drawPointsInContext(context2, edges, [255, 0, 0]);
+  drawPointsInContext(context2, edges, RGB.red);
 }
 
 function getHorizontalLine(simplifiedData, start, left) {
@@ -1661,7 +1670,7 @@ function detectVerticalLinesFromScoopedData(scoopedData) {
       prevLine.push(x);
     } else {
       if (prevLine && prevLine.length > 1) {
-        drawPointsInContext(context2, prevLine, [255, 0, 0]);
+        drawPointsInContext(context2, prevLine, RGB.red);
       }
       lines.push([x]);
     }
@@ -1687,8 +1696,8 @@ function lineDetection(char1) {
     return res;
   }, []);
   clearContext(context2);
-  drawPointsInContext(context2, horizontalPoints, [255, 0, 0])
-  drawPointsInContext(context2, verticalPoints, [255, 0, 0])
+  drawPointsInContext(context2, horizontalPoints, RGB.red)
+  drawPointsInContext(context2, verticalPoints, RGB.red)
 }
 
 /* STD-BY
@@ -1750,7 +1759,7 @@ function enterAndGoToMiddle(char1) {
     if (Math.floor(middleEnd / 100) === baseY) {
       var middleMiddle = (point + middleEnd) / 2
 
-      drawPointsInContext(context1, [point, middleMiddle, middleEnd], [255, 0, 0]);
+      drawPointsInContext(context1, [point, middleMiddle, middleEnd], RGB.red);
     }
   });
 }
@@ -1762,7 +1771,7 @@ function formNormalisation(char1) {
       form.sort(function (a,b) { return a - b; });
 
       clearContext(context2);
-      drawPointsInContext(context2, form, [0, 0, 255]);
+      drawPointsInContext(context2, form, RGB.blue);
       getScoopedDataFromContext(context2);
 
       console.log(form);
@@ -1828,7 +1837,7 @@ function getRectFromSimplifiedData(data) {
     drawPointsInContext(
       context1,
       flatten(rect),
-      [0, 0, 255]
+      RGB.blue
     );
   }
   var lastRight = rect[1].slice(-1)[0];
@@ -1887,13 +1896,13 @@ function removeStraightsFromChar(context, char1) {
   clearContext(context);
   var lines = getLinesFromChar(context, char1);
 
-  drawPointsInContext(context2, flatten(lines), [255, 0, 0]);
+  drawPointsInContext(context2, flatten(lines), RGB.red);
 
   var pointedLines = lines.map(function (line) {
     return removeStraightsFromLineData(line);
   });
 
-  drawPointsInContext(context2, flatten(pointedLines), [0, 0, 255]);
+  drawPointsInContext(context2, flatten(pointedLines), RGB.blue);
 
   return pointedLines;
 }
@@ -1905,7 +1914,7 @@ function incrementalStraightRemoval(context, char1) {
 
   // return;
   var pointedLine = sanitizePointedLine(line);
-  drawPointsInContext(context2, pointedLine, [0, 0, 255]);
+  drawPointsInContext(context2, pointedLine, RGB.blue);
 
   pointedLine = line;
 
@@ -1918,7 +1927,7 @@ function incrementalStraightRemoval(context, char1) {
     console.log(prev.length, next.length);
   }
 
-  drawPointsInContext(context2, next, [0, 0, 255]);
+  drawPointsInContext(context2, next, RGB.blue);
   return next;
 }
 
@@ -1983,7 +1992,7 @@ function drawCharCenter(context1, char1, next) {
     }
     console.log(distance, distanceA, distanceB)
 
-    drawPointsInContext(context2, [previousStart, previousFront], [255, 0, 0]);
+    drawPointsInContext(context2, [previousStart, previousFront], RGB.red);
     setTimeout((front !== end) ? getStartEnd : next, 33);
   }
   getStartEnd();
