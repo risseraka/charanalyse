@@ -224,7 +224,7 @@ function getAround(data, start) {
   return around;
 }
 
-function sanitize(context) {
+function sanitize(context, rgb) {
   var img = getCanvasData(context);
   eachPoints(img.data, function (el, i, data) {
     data[i + 0] = (data[i + 0] < 200) ? 0 : 255;
