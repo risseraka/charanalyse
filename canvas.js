@@ -1128,12 +1128,8 @@ function getLinesFromScoopedData(scoopedData) {
 }
 
 function getLinesFromChar(context, char1) {
-   var scooped = getScoopedDataFromChar(context, char1);
-   var lines = getLinesFromScoopedData(scooped);
-   lines.forEach(function (line) {
-     drawPointsInContext(context, line, RGB.red);
-   });
-   return lines;
+  var scooped = getScoopedDataFromChar(context, char1);
+  return getLinesFromScoopedData(scooped);
 }
 
 function isOnCanvasBorder(coord) {
@@ -1447,8 +1443,7 @@ function relativeAngleBetween(coord, coordA, coordB){
   return Math.acos((x1 * x2 + y1 * y2) / (len(x1, y1) * len(x2, y2)));
 }
 
-function detectOrthoEdgesFromScoopedData(scooped) {
-  var lines = getLinesFromScoopedData(scooped);
+function detectOrthoEdgesFromLines(lines) {
   var edges = lines.reduce(function (edges, line) {
     return edges.concat(
       line.reduce(function (lineEdges, coord, i, scooped) {
@@ -1464,6 +1459,11 @@ function detectOrthoEdgesFromScoopedData(scooped) {
   }, []);
   console.log(edges);
   return edges;
+}
+
+function detectOrthoEdgesFromScoopedData(scooped) {
+  var lines = getLinesFromScoopedData(scooped);
+  return detectOrthoEdgesFromLines(lines);
 }
 
 function consumeStraightFromLine(line, ortho) {
