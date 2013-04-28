@@ -1547,7 +1547,106 @@ function detectEdgesByConsumingCurvesFromChar(context, char1) {
     },
     []
   );
-  drawPointsInContext(context1, edges, [0, 0, 255]);
+  drawPointsInContext(context1, edges, RGB.blue);
+}
+
+detectEdgesByConsumingCurvesFromChar(context1, yong);
+
+function getStraightsFromLine(line) {
+  var straights = [];
+  while (line.length > 1) {
+    straight = consumeStraightFromLine(line);
+    straights.push(straight);
+    line.unshift(straight[straight.length - 1]);
+  }
+  return straights;
+}
+
+function getStraightsLinesFromLines(lines) {
+  return lines.map(getStraightsFromLine);
+}
+
+function getFirstFromStraights(straights) {
+  var edges = straights.reduce(
+    function (edges, straight) {
+      return edges.concat(straight.slice(0, 1));
+    },
+    []
+  );
+  return edges;
+}
+
+function getStraightsEdgesFromStraightsLines(lines) {
+  return lines.map(function (straights) {
+    return getFirstFromStraights(straights);
+  });
+}
+
+function getEdgesFromLine(line) {
+  return line.reduce(
+    function (res, point, i, line) {
+      if (
+        i === 0 ||
+        !arePointsAdjacent(line[i - 1], point) ||
+        !arePointsAdjacent(line[i + 1], point)
+      ) {
+        res.push(point);
+      }
+      return res;
+    },
+    []
+  );
+}
+
+function getSanitizedEdgesLinesFromLines(lines) {
+  return lines.map(function (line) {
+    return getEdgesFromLine(line);
+  });
+}
+
+function getFirstInAdjacentPointsFromLine(line) {
+  return line.reduce(
+    function (firsts, point, i, line) {
+      if (
+        i === 0 ||
+        (
+          !arePointsAdjacent(line[i - 1], point)
+        )
+      ) {
+        firsts.push(point);
+      }
+      return firsts;
+    },
+    []
+  );
+}
+
+function getFirstInAdjacentPointsFromLines(lines) {
+  return lines.map(getFirstInAdjacentPointsFromLine);
+}
+
+function getFirstInAdjacentPointsFromChar(context, char1) {
+  // method comparison
+  // removeStraightsFromChar(context4, char1);
+
+  var scooped = getScoopedDataFromChar(context, char1);
+  var lines = getLinesFromScoopedData(scooped);
+  return [
+    getStraightsLinesFromLines,
+    getStraightsEdgesFromStraightsLines,
+    getSanitizedEdgesLinesFromLines,
+    getFirstInAdjacentPointsFromLines
+  ].reduce(function (res, func, i) {
+    res = func(res);
+
+    var context = window['context' + (i + 1)];
+    clearContext(context);
+    drawPointsInContext(context, scooped, [255, 0, 0]);
+    if (res) {
+      drawPointsInContext(context, flatten(flatten(res)), [0, 0, 255]);
+    }
+    return res;
+  }, lines.slice());
 }
 
 function detectOrthoLineEdgesFromScoopedData(scooped) {
@@ -1924,13 +2023,13 @@ function removeStraightsFromChar(context, char1) {
   clearContext(context);
   var lines = getLinesFromChar(context, char1);
 
-  drawPointsInContext(context2, flatten(lines), RGB.red);
+  drawPointsInContext(context, flatten(lines), RGB.red);
 
   var pointedLines = lines.map(function (line) {
     return removeStraightsFromLineData(line);
   });
 
-  drawPointsInContext(context2, flatten(pointedLines), RGB.blue);
+  drawPointsInContext(context, flatten(pointedLines), RGB.blue);
 
   return pointedLines;
 }
