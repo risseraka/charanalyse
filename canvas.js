@@ -102,20 +102,48 @@ function series() {
   var funcs = Array.prototype.slice.call(arguments);
   var end = funcs.pop();
 
-  function loop() {
+  (function loop() {
     var func = funcs.shift();
 
     if (!func) return typeof end === 'function' && end();
 
     setTimeout(func.bind(this, loop), 0);
-  }
-  loop();
+  }());
+}
+
+function waterfall() {
+  var funcs = Array.prototype.slice.call(arguments);
+  var start = funcs[0];
+  var end = funcs.pop();
+
+  (function loop(res) {
+    var func = funcs.shift();
+
+    if (!func) return typeof end === 'function' && end(res);
+
+    var args = [loop];
+    if (func !== start) {
+      args.unshift(res);
+    }
+    setTimeout(func.apply.bind(func, this, args), 0);
+  }());
+}
+
+function compose() {
+  var funcs = Array.prototype.slice.call(arguments);
+  return funcs.reduce(
+    function (res, func) {
+      return func(res);
+    },
+    undefined
+  );
 }
 
 function toCallback(func) {
-  return function (callback) {
-    func();
-    typeof callback === 'function' && callback();
+  return function () {
+    callback = arguments[arguments.length - 1];
+    var res = func.apply(this, arguments);
+    typeof callback === 'function' && callback(res);
   };
 }
 
