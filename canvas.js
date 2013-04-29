@@ -139,12 +139,49 @@ function compose() {
   );
 }
 
+// array.map composition function
+// result function needs to be passed an array
+function toMap(func) {
+  return function (arr) {
+    return arr.map(func);
+  };
+}
+
 function toCallback(func) {
   return function () {
     callback = arguments[arguments.length - 1];
     var res = func.apply(this, arguments);
     typeof callback === 'function' && callback(res);
   };
+}
+
+function identity(x) {
+  return x;
+}
+
+function mapAndConcat(func) {
+  (!func || typeof func !== 'function') && (func = identity);
+  return function (arr) {
+    return arr.reduce(
+      function (res, el, i, arr) {
+        return res.concat(func(el, i, arr));
+      },
+      []
+    );
+  };
+}
+
+// flatten by using plain mapAndConcat
+var flatten = mapAndConcat();
+
+function getFirstFromArray(arr) {
+  return arr[0];
+}
+
+var getFirstFromArraysOfArrays = toMap(getFirstFromArray);
+
+function getLastFromArray(arr) {
+  return arr[arr.length - 1];
 }
 
 // hidden scaling helper canvas
@@ -1443,20 +1480,20 @@ function relativeAngleBetween(coord, coordA, coordB){
   return Math.acos((x1 * x2 + y1 * y2) / (len(x1, y1) * len(x2, y2)));
 }
 
-function detectOrthoEdgesFromLines(lines) {
-  var edges = lines.reduce(function (edges, line) {
-    return edges.concat(
-      line.reduce(function (lineEdges, coord, i, scooped) {
-        var coordA = scooped[(i === 0 ? scooped.length : i) - 1];
-        var coordB = scooped[i + 1];
+function getLineEdgesFromLine(line) {
+  return line.reduce(function (lineEdges, coord, i, scooped) {
+    var coordA = scooped[(i === 0 ? scooped.length : i) - 1];
+    var coordB = scooped[i + 1];
 
-        if (relativeAngleBetween(coord, coordA, coordB) <= Math.PI / 2) {
-          lineEdges.push(coord);
-        }
-        return lineEdges;
-      }, [])
-    );
+    if (relativeAngleBetween(coord, coordA, coordB) <= Math.PI / 2) {
+      lineEdges.push(coord);
+    }
+    return lineEdges;
   }, []);
+}
+
+function detectOrthoEdgesFromLines(lines) {
+  var edges = mapAndConcat(getLineEdgesFromLine)(lines);
   console.log(edges);
   return edges;
 }
@@ -1529,29 +1566,20 @@ function consumeCurvedLinesFromLine(line) {
   return curves;
 }
 
-function consumeCurvedLinesFromScoopedLines(lines) {
-  return lines.map(consumeCurvedLinesFromLine);
-}
-
 function detectEdgesByConsumingCurvesFromChar(context, char1) {
   var lines = getLinesFromChar(context, char1);
-  var linesCurves = consumeCurvedLinesFromScoopedLines(lines);
-  var edges = linesCurves.reduce(
-    function (edges, curves) {
-      return edges.concat(
-        curves.map(function (curve) { return curve[0]; })
-      );
-    },
-    []
-  );
+  var linesCurves = toMap(consumeCurvedLinesFromLine)(lines);
+  var edges = mapAndConcat(getFirstFromArraysOfArrays)(linesCurves);
   drawPointsInContext(context1, edges, RGB.blue);
+  return edges;
 }
 
 detectEdgesByConsumingCurvesFromChar(context1, yong);
 
 function getStraightsFromLine(line, ortho) {
   var straights = [];
-  while (line.length > 1) {
+  var limit = ortho ? 0 : 1;
+  while (line.length > limit) {
     var straight = consumeStraightFromLine(line, ortho);
     straights.push(straight);
 
@@ -1565,28 +1593,6 @@ function getStraightsFromLine(line, ortho) {
     }
   }
   return straights;
-}
-
-function getStraightsLinesFromLines(lines) {
-  return lines.map(getStraightsFromLine);
-}
-
-function getFirstsFromStraights(straights) {
-  return straights.map(function (straight) {
-    return straight[0];
-  });
-}
-
-function getLastsFromStraights(straights) {
-  return straights.map(function (straight) {
-    return straight[straight.length - 1];
-  });
-}
-
-function getStraightsEdgesFromStraightsLines(lines) {
-  return lines.map(function (straights) {
-    return getFirstsFromStraights(straights);
-  });
 }
 
 function getEdgesFromLine(line) {
@@ -1605,20 +1611,12 @@ function getEdgesFromLine(line) {
   );
 }
 
-function getSanitizedEdgesLinesFromLines(lines) {
-  return lines.map(function (line) {
-    return getEdgesFromLine(line);
-  });
-}
-
 function getFirstInAdjacentPointsFromLine(line) {
   return line.reduce(
     function (firsts, point, i, line) {
       if (
         i === 0 ||
-        (
-          !arePointsAdjacent(line[i - 1], point)
-        )
+        !arePointsAdjacent(line[i - 1], point)
       ) {
         firsts.push(point);
       }
@@ -1628,10 +1626,6 @@ function getFirstInAdjacentPointsFromLine(line) {
   );
 }
 
-function getFirstInAdjacentPointsFromLines(lines) {
-  return lines.map(getFirstInAdjacentPointsFromLine);
-}
-
 function getFirstInAdjacentPointsFromChar(context, char1) {
   // method comparison
   // removeStraightsFromChar(context4, char1);
@@ -1639,10 +1633,10 @@ function getFirstInAdjacentPointsFromChar(context, char1) {
   var scooped = getScoopedDataFromChar(context, char1);
   var lines = getLinesFromScoopedData(scooped);
   return [
-    getStraightsLinesFromLines,
-    getStraightsEdgesFromStraightsLines,
-    getSanitizedEdgesLinesFromLines,
-    getFirstInAdjacentPointsFromLines
+    toMap(getStraightsFromLine),
+    getFirstFromArraysOfArrays,
+    toMap(getEdgesFromLine),
+    toMap(getFirstInAdjacentPointsFromLine)
   ].reduce(function (res, func, i) {
     res = func(res);
 
@@ -1956,15 +1950,6 @@ function getFirstRectFromSimplifiedData(data) {
   return [right, rightDown, down, downRight];
 }
 
-function flatten(arr) {
-  return arr.reduce(
-    function (res, el) {
-      return res.concat(el);
-    },
-    []
-  );
-}
-
 function getRectFromSimplifiedData(data) {
   var rect = getFirstRectFromSimplifiedData(data);
   if (DEBUG) {
@@ -1994,7 +1979,7 @@ function getRectFromChar(context, char1) {
   return getRectFromSimplifiedData(data);
 }
 
-function removeStraightsFromLineData(line) {
+function removeStraightsFromLine(line) {
   var index = line.index;
 
   var prevAngle = Math.PI;
@@ -2032,9 +2017,7 @@ function removeStraightsFromChar(context, char1) {
 
   drawPointsInContext(context, flatten(lines), RGB.red);
 
-  var pointedLines = lines.map(function (line) {
-    return removeStraightsFromLineData(line);
-  });
+  var pointedLines = toMap(removeStraightsFromLine)(lines);
 
   drawPointsInContext(context, flatten(pointedLines), RGB.blue);
 
@@ -2057,7 +2040,7 @@ function incrementalStraightRemoval(context, char1) {
   var next = prev;
   while (prev === next || next.length !== prev.length) {
     prev = next;
-    next = removeStraightsFromLineData(prev);
+    next = removeStraightsFromLine(prev);
     console.log(prev.length, next.length);
   }
 
