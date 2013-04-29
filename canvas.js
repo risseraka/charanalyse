@@ -1568,19 +1568,21 @@ function getStraightsLinesFromLines(lines) {
   return lines.map(getStraightsFromLine);
 }
 
-function getFirstFromStraights(straights) {
-  var edges = straights.reduce(
-    function (edges, straight) {
-      return edges.concat(straight.slice(0, 1));
-    },
-    []
-  );
-  return edges;
+function getFirstsFromStraights(straights) {
+  return straights.map(function (straight) {
+    return straight[0];
+  });
+}
+
+function getLastsFromStraights(straights) {
+  return straights.map(function (straight) {
+    return straight[straight.length - 1];
+  });
 }
 
 function getStraightsEdgesFromStraightsLines(lines) {
   return lines.map(function (straights) {
-    return getFirstFromStraights(straights);
+    return getFirstsFromStraights(straights);
   });
 }
 
@@ -1643,9 +1645,9 @@ function getFirstInAdjacentPointsFromChar(context, char1) {
 
     var context = window['context' + (i + 1)];
     clearContext(context);
-    drawPointsInContext(context, scooped, [255, 0, 0]);
+    drawPointsInContext(context, scooped, RGB.red);
     if (res) {
-      drawPointsInContext(context, flatten(flatten(res)), [0, 0, 255]);
+      drawPointsInContext(context, flatten(flatten(res)), RGB.blue);
     }
     return res;
   }, lines.slice());
