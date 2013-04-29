@@ -1523,9 +1523,9 @@ function consumeCurvedLinesFromLine(line) {
   var curves = [];
   while (line.length > 0) {
     var curved = consumeCurvedLineFromLine(line);
-    drawPointsInContext(context1, curved, RGB.green);
     curves.push(curved);
   }
+  drawPointsInContext(context1, flatten(curves), RGB.green);
   return curves;
 }
 
@@ -1554,6 +1554,12 @@ function getStraightsFromLine(line, ortho) {
   while (line.length > 1) {
     var straight = consumeStraightFromLine(line, ortho);
     straights.push(straight);
+
+    // add very first point to last straight (closing the line)
+    if (line.length === 0 && straights.length > 0) {
+      straight.push(straights[0][0]);
+    }
+
     if (!ortho) {
       line.unshift(straight[straight.length - 1]);
     }
