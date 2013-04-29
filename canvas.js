@@ -1657,6 +1657,35 @@ function getFirstInAdjacentPointsFromChar(context, char1) {
   }, lines.slice());
 }
 
+function rightBind(/*func, arg1, arg2, ...*/) {
+  var args = Array.prototype.slice.call(arguments);
+  var func = args.shift() || identity;
+  return function (/*arg1, arg2, ...*/) {
+    args = Array.prototype.slice.call(arguments).concat(args);
+    return func.apply(this, args);
+  };
+}
+
+function keepFirstAndCall(/*func, arg1, arg2...*/) {
+  var func = rightBind.apply(this, arguments);
+  return function (arr) {
+    var start = arr.slice(0, 1);
+    var res = func.apply(this, arguments);
+    return start.concat(res);
+  };
+}
+
+function getStraightsLastsFromLine(line, ortho) {
+  line = line.slice();
+
+  var start = line[0];
+  var straights = getStraightsFromLine(line, ortho);
+  var lasts = toMap(getLastFromArray)(straights);
+  lasts.unshift(start);
+
+  return lasts;
+}
+
 function detectOrthoLineEdgesFromScoopedData(scooped) {
   var lines = getLinesFromScoopedData(scooped);
   var edges = lines.slice(1, 2).reduce(function (edges, line) {
