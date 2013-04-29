@@ -1552,12 +1552,14 @@ function detectEdgesByConsumingCurvesFromChar(context, char1) {
 
 detectEdgesByConsumingCurvesFromChar(context1, yong);
 
-function getStraightsFromLine(line) {
+function getStraightsFromLine(line, ortho) {
   var straights = [];
   while (line.length > 1) {
-    straight = consumeStraightFromLine(line);
+    var straight = consumeStraightFromLine(line, ortho);
     straights.push(straight);
-    line.unshift(straight[straight.length - 1]);
+    if (!ortho) {
+      line.unshift(straight[straight.length - 1]);
+    }
   }
   return straights;
 }
