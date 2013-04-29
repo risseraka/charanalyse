@@ -1516,9 +1516,6 @@ function consumeCurvedLineFromLine(line) {
       }
     }
   } while (line.length > 0 && angle < 0.0001);
-  if (false && line.length > 0) {
-    line.unshift(curved[curved.length - 1]);
-  }
   return curved;
 }
 
