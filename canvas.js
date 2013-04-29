@@ -1355,28 +1355,35 @@ function getVerticalBorders(simplifiedData) {
   return borders;
 }
 
-function toHorizontalData(simplifiedData) {
-  var data = simplifiedData.slice();
-  data.index = simplifiedData.index;
+function setArrayIndex(data) {
+  data.index = data.reduce(
+    function (index, x, i) {
+      index[x] = i;
+      return index;
+    },
+    {}
+  );
+  return data;
+}
 
-  return data.sort(function (a, b) {
-    // horizontal diff
-    return simplifiedY(a) - simplifiedY(b) ||
-      // vertical diff
-      simplifiedX(a) - simplifiedX(b);
-  });
+function toHorizontalData(simplifiedData) {
+  return setArrayIndex(
+    simplifiedData.slice().sort(function (a, b) {
+      // only a basic sort is needed
+      return a - b;
+    })
+  );
 }
 
 function toVerticalData(simplifiedData) {
-  var data = simplifiedData.slice();
-  data.index = simplifiedData.index;
-
-  return data.sort(function (a, b) {
-    // horizontal diff
-    return simplifiedX(a) - simplifiedX(b) ||
-      // vertical diff
-      simplifiedY(a) - simplifiedY(b);
-  });
+  return setArrayIndex(
+    simplifiedData.slice().sort(function (a, b) {
+      // horizontal diff
+      return simplifiedX(a) - simplifiedX(b) ||
+        // vertical diff
+        simplifiedY(a) - simplifiedY(b);
+    })
+  );
 }
 
 function borderDetectionFromSimplifiedData(simplifiedData) {
