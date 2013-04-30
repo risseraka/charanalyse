@@ -1698,7 +1698,16 @@ function getStraightsLastsFromLine(line, ortho, touch) {
     return lasts;
   })(line, ortho, touch);
 
-  return lasts;
+  // return lasts;
+}
+
+function getStraightEdgesFromLine(line) {
+  //drawPointsInContext(context1, lasts, RGB.green);
+  var lasts2 = getStraightsLastsFromLine(line.slice());
+  //drawPointsInContext(context1, lasts2, RGB.red);
+  var lasts3 = getStraightsLastsFromLine(lasts2.slice(), false, true);
+  drawPointsInContext(context1, lasts3, RGB.red);
+  return lasts3;
 }
 
 function detectOrthoLineEdgesFromScoopedData(scooped) {
