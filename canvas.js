@@ -1469,6 +1469,17 @@ function len(x, y){
   return Math.sqrt(x * x + y * y);
 }
 
+var radDeg = 180 / Math.PI;
+var degRad = Math.PI / 180;
+
+function radToDeg(rad) {
+  return radDeg * rad;
+}
+
+function degToRad(deg) {
+  return degRag * deg;
+}
+
 function angleBetween(a, b, c, d) {
   var x1 = simplifiedX(b) - simplifiedX(a);
   var y1 = simplifiedY(b) - simplifiedY(a);
