@@ -1521,7 +1521,7 @@ function detectOrthoEdgesFromScoopedData(scooped) {
   return detectOrthoEdgesFromLines(lines);
 }
 
-function consumeStraightFromLine(line, ortho) {
+function consumeStraightFromLine(line, ortho, touch) {
   var straight = [];
 
   var prev;
@@ -1534,6 +1534,7 @@ function consumeStraightFromLine(line, ortho) {
     if (
       point && prev && (
         (ortho && !arePointsOnSameLine(prev, point)) ||
+        (touch && !arePointsAdjacent(prev, point)) ||
         prevDelta && prevDelta !== delta
       )
     ) {
@@ -1594,11 +1595,11 @@ function detectEdgesByConsumingCurvesFromChar(context, char1) {
 
 detectEdgesByConsumingCurvesFromChar(context1, yong);
 
-function getStraightsFromLine(line, ortho) {
+function getStraightsFromLine(line, ortho, touch) {
   var straights = [];
   var limit = ortho ? 0 : 1;
   while (line.length > limit) {
-    var straight = consumeStraightFromLine(line, ortho);
+    var straight = consumeStraightFromLine(line, ortho, touch);
     straights.push(straight);
 
     // add very first point to last straight (closing the line)
@@ -1606,7 +1607,7 @@ function getStraightsFromLine(line, ortho) {
       straight.push(straights[0][0]);
     }
 
-    if (!ortho) {
+    if (!ortho && !touch) {
       line.unshift(straight[straight.length - 1]);
     }
   }
@@ -1686,13 +1687,16 @@ function keepFirstAndCall(/*func, arg1, arg2...*/) {
   };
 }
 
-function getStraightsLastsFromLine(line, ortho) {
+function getStraightsLastsFromLine(line, ortho, touch) {
   line = line.slice();
 
-  var start = line[0];
-  var straights = getStraightsFromLine(line, ortho);
-  var lasts = toMap(getLastFromArray)(straights);
-  lasts.unshift(start);
+  // var start = line[0];
+  // lasts.unshift(start);
+  return keepFirstAndCall(function (line, ortho, touch) {
+    var straights = getStraightsFromLine(line, ortho, touch);
+    var lasts = toMap(getLastFromArray)(straights);
+    return lasts;
+  })(line, ortho, touch);
 
   return lasts;
 }
