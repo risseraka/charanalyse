@@ -1,4 +1,6 @@
-﻿document.body.innerHTML = '';
+﻿//
+
+document.body.innerHTML = '';
 
 function forEach(data, func) {
   var i, j;
@@ -14,6 +16,83 @@ function eachPoints(data, func) {
   for (i = 0, j = data.length; i < j; i += 4) {
     func(data[i], i, data);
   }
+}
+
+function isPointBlank(data, i) {
+  return data[i + 3] === 0 ||
+    data[i] === 255 &&
+    data[i + 1] === 255 &&
+    data[i + 2] === 255;
+}
+
+function getXY(i) {
+  var x = i / 4 % 100,
+    y = Math.floor(i / 4 / 100);
+
+  return [x, y];
+}
+
+function leftPos(i) {
+  return i - 4;
+}
+
+function rightPos(i) {
+  return i + 4;
+}
+
+function upPos(i) {
+  return i - 100 * 4;
+}
+
+function downPos(i) {
+  return i + 100 * 4;
+}
+
+function filterRGBFromData(data, rgb) {
+  var points = [];
+
+  eachPoints(data, function (r, i, data) {
+    if (
+      data[i] === rgb[0] &&
+      data[i + 1] === rgb[1] &&
+      data[i + 2] === rgb[2]
+    ) {
+      points.push(i);
+    }
+  });
+  return points;
+}
+
+function imageDataIndicesToSimplified(data) {
+  return data.map(function (coord) {
+    return coord / 4;
+  });
+}
+
+function getFilteredSimplifiedDataFromContext(context, rgb) {
+  return compose(
+    leftBind(getDataFromContext, context),
+    rightBind(filterRGBFromData, rgb),
+    imageDataIndicesToSimplified
+  );
+}
+
+function intersect(a, b) {
+  a = a.slice();
+  b = b.slice();
+
+  var result = [];
+  while (a.length > 0 && b.length > 0) {
+    if (a[0] < b[0]) {
+      a.shift();
+    } else if (a[0] > b[0]) {
+      b.shift();
+    } else /* they're equal */ {
+      result.push(a.shift());
+      b.shift();
+    }
+  }
+  return result;
 }
 
 function createCanvas(id, hidden) {
@@ -33,8 +112,8 @@ function clearContext(context) {
   context.clearRect(0, 0, context.canvas.width, context.canvas.height);
 }
 
-function bigCanvas(canvas) {
-  canvas.style.height = '200px';
+function getDataFromImageData(imageData) {
+  return imageData.data;
 }
 
 function getImageDataFromContext(context, w, h) {
@@ -45,6 +124,17 @@ function getImageDataFromContext(context, w, h) {
     h || context.canvas.height
   );
 }
+
+var getDataFromContext = composition(
+  getImageDataFromContext,
+  getDataFromImageData
+);
+
+function bigCanvas(canvas) {
+  canvas.style.height = '200px';
+}
+
+// SIMPLIFIED METHODS
 
 function printSimplifiedData(data) {
   var lines = data.reduce(function (result, el) {
@@ -85,18 +175,38 @@ function getXYFormFromSimplifiedData(simplifiedData) {
   });
 }
 
-function getSimplifiedDataFromImageData(imageData) {
+function getSimplifiedDataFromData(data) {
   var simplified = [];
   var index = {};
+  simplified.index = index;
 
-  eachPoints(imageData.data, function (el, i, data) {
+  eachPoints(data, function (el, i, data) {
     if (!isPointBlank(data, i)) {
       index[i / 4] = simplified.push(i / 4) - 1;
     }
   });
-  simplified.index = index;
   return simplified;
 }
+
+var getSimplifiedDataFromImageData = composition(
+  getSimplifiedDataFromData,
+  getDataFromImageData
+);
+
+var getSimplifiedDataFromContext = composition(
+  getImageDataFromContext,
+  getDataFromImageData,
+  getSimplifiedDataFromData
+);
+
+function getSimplifiedDataFromChar(context, char1) {
+  clearContext(context);
+  drawChar(context, char1, RGB.red);
+
+  return getSimplifiedDataFromContext(context);
+}
+
+// SIMPLIFIED METHODS
 
 // hidden scaling helper canvas
 var scaleCanvas = createCanvas('myCanvas', true);
@@ -120,52 +230,48 @@ var context5 = canvas5.getContext('2d');
 var canvas6 = createCanvas('mycanvas6');
 var context6 = canvas6.getContext('2d');
 
-function drawChar(context, car, color, next) {
-  context.font = '100px Microsoft Yahei';
-  context.fillStyle = color;
-  context.fillText(car, 0, 80);
-  sanitize(context);
+function sanitizeImageData(img, rgb) {
+  var img = getImageDataFromContext(context);
 
-  typeof next === 'function' && next(context);
+  eachPoints(img.data, function (el, i, data) {
+    data[i + 0] = (data[i + 0] < 200) ? 0 : 255;
+    data[i + 1] = 0;
+    data[i + 2] = 0;
+    data[i + 3] = (data[i + 3] < 254) ? 0 : 255;
+  });
+  context.putImageData(img, 0, 0);
 }
 
-function drawBothChars(car1, car2, next) {
+function sanitizeContext(context, rgb) {
+  var filtered = getFilteredSimplifiedDataFromContext(context, rgb);
+  clearContext(context);
+  drawPointsInContext(context, filtered, rgb);
+}
+
+function drawChar(context, char1, rgb, next) {
+  context.font = '100px Microsoft Yahei';
+  context.fillStyle = 'rgb(' + rgb.join(',') + ')';
+  context.fillText(char1, 0, 85);
+
+  typeof next === 'function' && next(context);
+  return context;
+}
+
+function drawBothChars(char1, char2, next) {
   clearContext(context1);
   clearContext(context2);
   series(
-    bind(drawChar, context1, car1, '#f00'),
-    bind(drawChar, context2, car2, '#00f'),
+    leftBind(drawChar, context1, char1, RGB.red),
+    leftBind(drawChar, context2, char2, RGB.blue),
     function () {
       var img1, img2;
 
       img1 = getImageDataFromContext(context1);
       img2 = getImageDataFromContext(context2);
 
-      typeof next === 'function' && next(img1, img2);
+      typeof next === 'function' && next();
     }
   );
-}
-
-function getCommon(car1, car2, next) {
-  drawBothChars(car1, car2, function (img1, img2) {
-    var common,
-      data1 = getSimplifiedDataFromImageData(img1),
-      data2 = getSimplifiedDataFromImageData(img2);
-
-    // console.log(data1, data2);
-    common = intersect(data1, data2);
-    printSimplifiedData(common);
-    // console.log('commons:', str);
-    // console.log('total:', common.length);
-    typeof next === 'function' && next(common);
-  });
-}
-
-function highlightCommon(char1, char2) {
-  getCommon(char1, char2, function (common) {
-    drawPointsInContext(context1, common, [255, 200, 150], getImageDataFromContext(context1).data);
-    drawPointsInContext(context2, common, [150, 200, 255], getImageDataFromContext(context2).data);
-  });
 }
 
 function pushIfWithin(arr, arr2, el) {
@@ -202,11 +308,10 @@ function drawPointsInContext(context, points, rgb, data) {
   points = points.slice();
   var canvas = context.canvas;
 
-  !data && (data = getImageDataFromContext(context).data);
+  !data && (data = getDataFromContext(context));
   var imgd = context.createImageData(canvas.width, canvas.height),
     data2 = imgd.data;
 
-  if (data)
   forEach(data, function (el, i) {
     data2[i] = el;
   });
@@ -222,23 +327,32 @@ function drawPointsInContext(context, points, rgb, data) {
   context.putImageData(imgd, 0, 0);
 }
 
-function sanitize(context, rgb) {
-  var img = getImageDataFromContext(context);
-  eachPoints(img.data, function (el, i, data) {
-    data[i + 0] = (data[i + 0] < 200) ? 0 : 255;
-    data[i + 1] = 0;
-    data[i + 2] = 0;
-    data[i + 3] = (data[i + 3] < 254) ? 0 : 255;
+function getCommon(char1, char2, next) {
+  drawBothChars(char1, char2, function () {
+    var common,
+      data1 = getSimplifiedDataFromContext(context1),
+      data2 = getSimplifiedDataFromContext(context2);
+
+    // console.log(data1, data2);
+    common = intersect(data1, data2);
+    printSimplifiedData(common);
+    // console.log('commons:', str);
+    // console.log('total:', common.length);
+    typeof next === 'function' && next(common);
   });
-  context.putImageData(img, 0, 0);
+}
+
+function highlightCommon(char1, char2) {
+  getCommon(char1, char2, function (common) {
+    drawPointsInContext(context1, common, [255, 200, 150]);
+    drawPointsInContext(context2, common, [150, 200, 255]);
+  });
 }
 
 function dissectChar(context, char1, next) {
   clearContext(context);
-  drawChar(context, char1, '#f00', function (context) {
-    sanitize(context);
-
-    var data = getSimplifiedDataFromImageData(getImageDataFromContext(context));
+  drawChar(context, char1, RGB.red, function (context) {
+    var data = getSimplifiedDataFromContext(context);
 
     //console.log(data);
 
@@ -275,19 +389,11 @@ function dissectChar(context, char1, next) {
       drawPointsInContext(
         context,
         form,
-        [50, 255 * (forms.length - i) / forms.length + 50, 50],
-        getImageDataFromContext(context).data
+        [50, 255 * (forms.length - i) / forms.length + 50, 50]
       );
     });
     typeof next === 'function' && next(forms);
   });
-}
-
-function isPointBlank(data, i) {
-  return data[i + 3] === 0 ||
-    data[i] === 255 &&
-    data[i + 1] === 255 &&
-    data[i + 2] === 255;
 }
 
 function getFirstPointHorizCond(data, start, cond) {
@@ -346,22 +452,6 @@ function getFirstPointPos(data, start) {
     }
   }
   return -1;
-}
-
-function leftPos(i) {
-  return i - 4;
-}
-
-function rightPos(i) {
-  return i + 4;
-}
-
-function upPos(i) {
-  return i - 100 * 4;
-}
-
-function downPos(i) {
-  return i + 100 * 4;
 }
 
 function getPixelLineFrom2(data, start) {
@@ -531,22 +621,14 @@ function getYi2(data, offset) {
   return [];
 }
 
-function testIfYi(context, car) {
+function testIfYi(context, char1) {
   clearContext(context);
-  drawChar(context, car, '#f00', function () {
-    var img = getImageDataFromContext(context),
-      data = img.data;
+  drawChar(context, char1, RGB.red, function () {
+    var data = getDataFromContext(context);
 
     // console.log(data);
     getYi(data);
   });
-}
-
-function getXY(i) {
-  var x = i / 4 % 100,
-    y = Math.floor(i / 4 / 100);
-
-  return [x, y];
 }
 
 function getForm(data, start) {
@@ -644,15 +726,14 @@ function consumeForms(context, data, forms, next) {
   });
 }
 
-function getForms(context, car, next) {
+function getForms(context, char1, next) {
   clearContext(context);
   drawChar(
     context,
-    car,
-    '#f00',
+    char1,
+    RGB.red,
     function () {
-      var img = getImageDataFromContext(context),
-        data = img.data;
+      var data = getDataFromContext(context);
 
       // console.log(data);
       consumeForms(
@@ -666,24 +747,6 @@ function getForms(context, car, next) {
       );
     }
   );
-}
-
-function intersect(a, b) {
-  a = a.slice();
-  b = b.slice();
-
-  var result = [];
-  while (a.length > 0 && b.length > 0) {
-    if (a[0] < b[0]) {
-      a.shift();
-    } else if (a[0] > b[0]) {
-      b.shift();
-    } else /* they're equal */ {
-      result.push(a.shift());
-      b.shift();
-    }
-  }
-  return result;
 }
 
 function compareCharsOLD(char1, char2) {
@@ -754,9 +817,8 @@ function drawForms(forms) {
 
 function dissectCharOLD(char1) {
   clearContext(context1);
-  drawChar(context1, char1, '#f00', function () {
-     var img = getImageDataFromContext(context1),
-      data = img.data,
+  drawChar(context1, char1, RGB.red, function () {
+     var data = getDataFromContext(context1),
       edges = getEdges(data),
       forms = [];
 
@@ -903,8 +965,8 @@ function compareHaiBu(char1, char2, next) {
       scaleForm(context3, forms1[1]);
       scaleForm(context4, forms2[0].concat(forms2[1]));
 
-      var form1 = getSimplifiedDataFromImageData(getImageDataFromContext(context3));
-      var form2 = getSimplifiedDataFromImageData(getImageDataFromContext(context4));
+      var form1 = getSimplifiedDataFromContext(context3);
+      var form2 = getSimplifiedDataFromContext(context4);
       window.intersection = compareForms(form1, form2);
       // console.log(intersection);
     });
@@ -917,8 +979,8 @@ function compareHaiBu(char1, char2, next) {
       scaleForm(context3, forms1[1]);
       scaleForm(context4, forms2[0].concat(forms2[1]));
 
-      var form1 = getSimplifiedDataFromImageData(getImageDataFromContext(context3));
-      var form2 = getSimplifiedDataFromImageData(getImageDataFromContext(context4));
+      var form1 = getSimplifiedDataFromContext(context3);
+      var form2 = getSimplifiedDataFromContext(context4);
       window.intersection = compareForms(form1, form2);
       // console.log(intersection);
     });
@@ -935,17 +997,11 @@ var pairs = [
   ['生', '主']
 ];
 
-function tata() {
-  drawBothChars(pairs[0][0], pairs[0][1], function (img1, img2) {
-  });
-}
-
-
 function compareZiXue(char1, char2, next) {
   char1 = pairs[2][0];
   char2 = pairs[2][1];
-  drawChar(context3, char1, '0f0');
-  drawChar(context4, char2, '0f0');
+  drawChar(context3, char1, RGB.green);
+  drawChar(context4, char2, RGB.green);
   dissectChar(context1, char1, function (forms1) {
     dissectChar(context2, char2, function (forms2) {
       if (false) {
@@ -957,27 +1013,12 @@ function compareZiXue(char1, char2, next) {
         }
       }
 
-      var form1 = getSimplifiedDataFromImageData(getImageDataFromContext(context3));
-      var form2 = getSimplifiedDataFromImageData(getImageDataFromContext(context4));
+      var form1 = getSimplifiedDataFromContext(context3);
+      var form2 = getSimplifiedDataFromContext(context4);
       window.intersection = compareForms(form1, form2);
       // console.log(intersection);
     });
   });
-}
-
-function filterRGB(data, rgb) {
-  var points = [];
-
-  eachPoints(data, function (r, i, data) {
-    if (
-      data[i] === rgb[0] &&
-      data[i + 1] === rgb[1] &&
-      data[i + 2] === rgb[2]
-    ) {
-      points.push(i / 4);
-    }
-  });
-  return points;
 }
 
 function compareFormsAtPos(char1, pos1, char2, pos2) {
@@ -986,24 +1027,23 @@ function compareFormsAtPos(char1, pos1, char2, pos2) {
       scaleForm(context3, forms1.slice(pos1)[0]);
       scaleForm(context4, forms2.slice(pos2)[0]);
 
+      var form1 = getSimplifiedDataFromContext(context3);
+      var form2 = getSimplifiedDataFromContext(context4);
+      window.intersection = compareForms(form1, form2);
+      // console.log(intersection);
 
-        var form1 = getSimplifiedDataFromImageData(getImageDataFromContext(context3));
-        var form2 = getSimplifiedDataFromImageData(getImageDataFromContext(context4));
-        window.intersection = compareForms(form1, form2);
-        // console.log(intersection);
-
-        window.exclusion1 = filterRGB(getImageDataFromContext(context3).data, RGB.red);
-        window.exclusion2 = filterRGB(getImageDataFromContext(context4).data, RGB.red);
-        drawPointsInContext(
-          context5,
-          exclusion1,
-          RGB.red
-        );
-        drawPointsInContext(
-          context6,
-          exclusion2,
-          RGB.red
-        );
+      var exclusion1 = getFilteredSimplifiedDataFromContext(context3, RGB.red);
+      var exclusion2 = getFilteredSimplifiedDataFromContext(context4, RGB.red);
+      drawPointsInContext(
+        context5,
+        exclusion1,
+        RGB.red
+      );
+      drawPointsInContext(
+        context6,
+        exclusion2,
+        RGB.red
+      );
     });
   });
 }
@@ -1117,7 +1157,7 @@ function getScoopingFromSimplifiedData(data) {
 }
 
 function getScoopedDataFromContext(context) {
-  var data = getSimplifiedDataFromImageData(getImageDataFromContext(context));
+  var data = getSimplifiedDataFromContext(context);
 
   var scooping = getScoopingFromSimplifiedData(data);
   drawPointsInContext(context, scooping.scooped, RGB.blue);
@@ -1128,7 +1168,7 @@ function getScoopedDataFromContext(context) {
 
 function getScoopedDataFromChar(context, char1) {
   clearContext(context);
-  drawChar(context, char1, '#f00');
+  drawChar(context, char1, RGB.red);
 
   return getScoopedDataFromContext(context);
 }
@@ -1146,36 +1186,6 @@ function arePointsOnSameLine(a, b) {
   return diff === 1 || // left or right
     diff === 100; // up or down
 }
-
-/* STD-BY
-function scoopedOutToLine(scooped) {
-  scooped = scooped.slice();
-  if (scooped.length < 2) return scooped;
-
-  var i = 0;
-
-  var lines = [];
-
-  while (scooped.length > 0 && i < 10000) {
-    var last = scooped.shift();
-    var line = [last];
-
-    var start = last;
-    while (current !== start) {
-      var current = scooped.shift();
-      if (arePointsAdjacent(current, last)) {
-        line.push(current);
-        last = current;
-      } else {
-        scooped.push(current);
-      }
-      i += 1;
-    }
-    lines.push(line);
-  }
-  return lines;
-}
-*/
 
 function printLine(line) {
   var printable = line.map(function (xy) {
@@ -1301,8 +1311,8 @@ function borderDetectionFromSimplifiedData(simplifiedData) {
 
 function borderDetectionChar(context1, char1) {
   clearContext(context1);
-  drawChar(context1, char1, '#f00');
-  var simplifiedData = getSimplifiedDataFromImageData(getImageDataFromContext(context1));
+  drawChar(context1, char1, RGB.red);
+  var simplifiedData = getSimplifiedDataFromContext(context1);
   return borderDetectionFromSimplifiedData(simplifiedData);
 }
 
@@ -1313,7 +1323,7 @@ function dissectAndDetectBorder(channel, char1, i) {
     forms.slice(i, i + 1).forEach(function (form) {
       var context4 = window['context' + (+channel + 2)];
       scaleForm(context4, form);
-      var simplifiedData = getSimplifiedDataFromImageData(getImageDataFromContext(context4));
+      var simplifiedData = getSimplifiedDataFromContext(context4);
       var context6 = window['context' + (+channel + 4)];
       drawBordersAndMiddles(context6,
         borderDetectionFromSimplifiedData(simplifiedData)
@@ -1675,16 +1685,6 @@ function scoopAndDetectEdgesFromSimplifiedData(context, data) {
   return edges;
 }
 
-function getSimplifiedDataFromChar(context, char1, sanitized) {
-  clearContext(context);
-  drawChar(context, char1, '#f00');
-  if (sanitized) {
-    sanitize(context);
-  }
-
-  return getSimplifiedDataFromImageData(getImageDataFromContext(context));
-}
-
 function scoopAndDetectEdgesFromChar(context, char1) {
   var data = getSimplifiedDataFromChar(context1, char1);
   var edges = scoopAndDetectEdgesFromSimplifiedData(context, data);
@@ -1785,33 +1785,6 @@ function lineDetection(char1) {
   drawPointsInContext(context2, horizontalPoints, RGB.red)
   drawPointsInContext(context2, verticalPoints, RGB.red)
 }
-
-/* STD-BY
-function eachLineMode(scoopedData, func) {
-  var index = scoopedData.index;
-  var totalLength = scoopedData.length;
-
-  var data = scoopedData.slice();
-  while (totalLength) {
-    var start = data.shift();
-    var next = start;
-    do {
-      if (data[0] === next + 1) {
-        next = data.shift();
-        func(next)
-      }
-    } while (next !== start);
-  }
-}
-
-function testEachLineMode(char1) {
-  var scooped = getScoopedDataFromChar(context1, char1);
-
-  eachLineMode(scooped, function (line) {
-    // ?
-  });
-}
-*/
 
 function sliceSimplifiedDataFromPoint(simplifiedData, start, i1, i2) {
   var index = simplifiedData.indexOf(start);
@@ -1931,9 +1904,9 @@ function getRectFromSimplifiedData(data) {
 
 function getRectFromChar(context, char1) {
   clearContext(context);
-  drawChar(context, char1, '#f00');
+  drawChar(context, char1, RGB.red);
 
-  var data = getSimplifiedDataFromImageData(getImageDataFromContext(context));
+  var data = getSimplifiedDataFromContext(context);
   return getRectFromSimplifiedData(data);
 }
 
@@ -2034,8 +2007,8 @@ function getNextLine(points) {
 function drawCharCenter(context1, char1, next) {
   // next = next || function () {};
 
-  drawChar(context1, char1, '#f00');
-  var simplifiedData = getSimplifiedDataFromImageData(getImageDataFromContext(context1));
+  drawChar(context1, char1, RGB.red);
+  var simplifiedData = getSimplifiedDataFromContext(context1);
 
   var index = simplifiedData.index;
   var points = simplifiedData.slice();

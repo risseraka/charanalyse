@@ -1,7 +1,7 @@
 
 var arraySlice = Function.prototype.call.bind(Array.prototype.slice);
 
-function bind(func/*, arg1, arg2, ...*/) {
+function leftBind(func/*, arg1, arg2, ...*/) {
   var args = arraySlice(arguments, 1);
   return function () {
     return func.apply(this, args.concat(arraySlice(arguments)));
@@ -46,14 +46,36 @@ function waterfall() {
   }());
 }
 
-function compose() {
+function toArrayResult(func) {
+  return function () {
+    return [func.apply(this, arguments)];
+  };
+}
+
+// multiple-argument functions composition
+// equivalent to:
+// function composed() {
+//   return func3(func2(func1(arg1, arg2, ...)));
+// }
+function composition(/*func1, func2, ...*/) {
   var funcs = arraySlice(arguments);
-  return funcs.reduce(
-    function (res, func) {
-      return func(res);
-    },
-    undefined
-  );
+  return function () {
+    funcs[0] && (
+      funcs[0] = Function.prototype.apply.bind(funcs[0], funcs[0], arraySlice(arguments))
+    );
+    return funcs.reduce(
+      function (res, func) {
+        return func.call(this, res);
+      },
+      undefined
+    );
+  };
+}
+
+// no-argument functions immediate calls
+// equivalent to func3(func2(func1()))
+function compose(/*func1, func2, ...*/) {
+  return composition.apply(this, arguments)();
 }
 
 // array.map composition function
