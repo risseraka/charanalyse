@@ -98,92 +98,6 @@ function getSimplifiedDataFromImageData(imageData) {
   return simplified;
 }
 
-function series() {
-  var funcs = Array.prototype.slice.call(arguments);
-  var end = funcs.pop();
-
-  (function loop() {
-    var func = funcs.shift();
-
-    if (!func) return typeof end === 'function' && end();
-
-    setTimeout(func.bind(this, loop), 0);
-  }());
-}
-
-function waterfall() {
-  var funcs = Array.prototype.slice.call(arguments);
-  var start = funcs[0];
-  var end = funcs.pop();
-
-  (function loop(res) {
-    var func = funcs.shift();
-
-    if (!func) return typeof end === 'function' && end(res);
-
-    var args = [loop];
-    if (func !== start) {
-      args.unshift(res);
-    }
-    setTimeout(func.apply.bind(func, this, args), 0);
-  }());
-}
-
-function compose() {
-  var funcs = Array.prototype.slice.call(arguments);
-  return funcs.reduce(
-    function (res, func) {
-      return func(res);
-    },
-    undefined
-  );
-}
-
-// array.map composition function
-// result function needs to be passed an array
-function toMap(func) {
-  return function (arr) {
-    return arr.map(func);
-  };
-}
-
-function toCallback(func) {
-  return function () {
-    callback = arguments[arguments.length - 1];
-    var res = func.apply(this, arguments);
-    typeof callback === 'function' && callback(res);
-  };
-}
-
-function identity(x) {
-  return x;
-}
-
-function mapAndConcat(func) {
-  (!func || typeof func !== 'function') && (func = identity);
-  return function (arr) {
-    return arr.reduce(
-      function (res, el, i, arr) {
-        return res.concat(func(el, i, arr));
-      },
-      []
-    );
-  };
-}
-
-// flatten by using plain mapAndConcat
-var flatten = mapAndConcat();
-
-function getFirstFromArray(arr) {
-  return arr[0];
-}
-
-var getFirstFromArraysOfArrays = toMap(getFirstFromArray);
-
-function getLastFromArray(arr) {
-  return arr[arr.length - 1];
-}
-
 // hidden scaling helper canvas
 var scaleCanvas = createCanvas('myCanvas', true);
 var scaleContext = scaleCanvas.getContext('2d');
@@ -213,26 +127,6 @@ function drawChar(context, car, color, next) {
   sanitize(context);
 
   typeof next === 'function' && next(context);
-}
-
-function bind(func/*, arg1, arg2, ...*/) {
-  var args = Array.prototype.slice.call(arguments, 1);
-  return function () {
-    return func.apply(this, args.concat(Array.prototype.slice.call(arguments)));
-  };
-}
-
-function rightBind(func/*, arg1, arg2, ...*/) {
-  var args = Array.prototype.slice.call(arguments, 1);
-  return function (/*arg1, arg2, ...*/) {
-    return func.apply(this, Array.prototype.slice.call(arguments).concat(args));
-  };
-}
-
-function callFirst(func) {
-  return function (first) {
-    return func.call(this, first);
-  };
 }
 
 function drawBothChars(car1, car2, next) {
@@ -952,7 +846,7 @@ function compareCharForms(char1, char2, next) {
 }
 
 function drawAllChars(chars, rate) {
-  var funcs = Array.prototype.slice.call(chars).map(function (char1) {
+  var funcs = arraySlice(chars).map(function (char1) {
     return function (callback) {
       setTimeout(function () {
         clearContext(context1);
