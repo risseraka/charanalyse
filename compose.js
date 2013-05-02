@@ -61,7 +61,9 @@ function composition(/*func1, func2, ...*/) {
   var funcs = arraySlice(arguments);
   return function () {
     funcs[0] && (
-      funcs[0] = Function.prototype.apply.bind(funcs[0], funcs[0], arraySlice(arguments))
+      funcs[0] = Function.prototype.apply.bind(
+        funcs[0], funcs[0], arraySlice(arguments)
+      )
     );
     return funcs.reduce(
       function (res, func) {
