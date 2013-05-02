@@ -215,10 +215,23 @@ function drawChar(context, car, color, next) {
   typeof next === 'function' && next(context);
 }
 
-function bind(func/*, args, ...*/) {
+function bind(func/*, arg1, arg2, ...*/) {
   var args = Array.prototype.slice.call(arguments, 1);
   return function () {
-    func.apply(this, args.concat(Array.prototype.slice.call(arguments)));
+    return func.apply(this, args.concat(Array.prototype.slice.call(arguments)));
+  };
+}
+
+function rightBind(func/*, arg1, arg2, ...*/) {
+  var args = Array.prototype.slice.call(arguments, 1);
+  return function (/*arg1, arg2, ...*/) {
+    return func.apply(this, Array.prototype.slice.call(arguments).concat(args));
+  };
+}
+
+function callFirst(func) {
+  return function (first) {
+    return func.call(this, first);
   };
 }
 
@@ -1667,15 +1680,6 @@ function getFirstInAdjacentPointsFromChar(context, char1) {
     }
     return res;
   }, lines.slice());
-}
-
-function rightBind(/*func, arg1, arg2, ...*/) {
-  var args = Array.prototype.slice.call(arguments);
-  var func = args.shift() || identity;
-  return function (/*arg1, arg2, ...*/) {
-    args = Array.prototype.slice.call(arguments).concat(args);
-    return func.apply(this, args);
-  };
 }
 
 function keepFirstAndCall(/*func, arg1, arg2...*/) {
