@@ -122,11 +122,15 @@ function SimplifiedData() {
   function fromSimplifiedData(data) {
     points.length = 0;
     Array.prototype.push.apply(points, data);
+    index = data.index;
+    points.index = index;
   }
 
   function fromSimplifiedObject(object) {
     points.length = 0;
     Array.prototype.push.apply(points, object.points);
+    index = object.points.index;
+    points.index = index;
   }
 
   function getMaxMin() {
