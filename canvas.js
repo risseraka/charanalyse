@@ -1562,7 +1562,9 @@ function angleBetween(a, b, c, d) {
   var y1 = simplifiedY(b) - simplifiedY(a);
   var x2 = simplifiedX(d) - simplifiedX(c);
   var y2 = simplifiedY(d) - simplifiedY(c);
-  return Math.acos((x1 * x2 + y1 * y2) / (len(x1, y1) * len(x2, y2)));
+  var angle = (x1 * x2 + y1 * y2) / (len(x1, y1) * len(x2, y2));
+  var rounded = Math.round(angle * 1000) / 1000;
+  return Math.acos(rounded);
 }
 
 function relativeAngleBetween(coord, coordA, coordB){
@@ -1572,7 +1574,9 @@ function relativeAngleBetween(coord, coordA, coordB){
   var y1 = simplifiedY(coordA) - y;
   var x2 = simplifiedX(coordB) - x;
   var y2 = simplifiedY(coordB) - y;
-  return Math.acos((x1 * x2 + y1 * y2) / (len(x1, y1) * len(x2, y2)));
+  var angle = (x1 * x2 + y1 * y2) / (len(x1, y1) * len(x2, y2));
+  var rounded = Math.round(angle * 1000) / 1000;
+  return Math.acos(rounded);
 }
 
 function getLineEdgesFromLine(line) {
