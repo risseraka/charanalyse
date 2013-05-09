@@ -55,7 +55,8 @@ function filterRGBFromData(data, rgb) {
     if (
       data[i] === rgb[0] &&
       data[i + 1] === rgb[1] &&
-      data[i + 2] === rgb[2]
+      data[i + 2] === rgb[2] &&
+      (!rgb[3] || data[i + 3] === rgb[3])
     ) {
       points.push(i);
     }
