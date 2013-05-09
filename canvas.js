@@ -1123,13 +1123,13 @@ function scaleSimplifiedData(context, data) {
   context.clear();
   scaleContext.clear();
 
-  data = data.slice().sort(function (a, b) { return a - b; });
+  // data = data.slice().sort(function (a, b) { return a - b; });
 
   var maxmin = data.getMaxMin();
 
-  scaleContext.drawSimplifiedPoints(form, RGB.red);
-  context.drawImage(
-    scaleContext.canvas,
+  scaleContext.drawSimplifiedPoints(data.points, RGB.red);
+  context.context.drawImage(
+    scaleContext.context.canvas,
     maxmin.x.min, maxmin.y.min,
     maxmin.x.max - maxmin.x.min + 1, maxmin.y.max - maxmin.y.min + 1,
     0, 0, 100, 100
