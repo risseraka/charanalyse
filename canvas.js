@@ -272,6 +272,7 @@ function Context(canvas) {
 
   function clear() {
     context.clearRect(0, 0, canvas.width, canvas.height);
+    return that;
   }
 
   function drawChar(char1, rgb, next) {
@@ -341,8 +342,8 @@ function Context(canvas) {
     getSimplifiedData
   );
 
-  return {
-    points: context,
+  var that = {
+    context: context,
     toString: toString,
     valueOf: valueOf,
     clear: clear,
@@ -354,6 +355,7 @@ function Context(canvas) {
     drawSimplifiedPoints: drawSimplifiedPoints,
     getScoopedData: getScoopedData
   };
+  return that;
 }
 
 function Canvas(id, hidden) {
