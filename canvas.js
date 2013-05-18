@@ -64,6 +64,34 @@ function filterRGBFromData(data, rgb) {
   return points;
 }
 
+function applyDataOnData(target, source) {
+  forEach(source, function (el, i) {
+    target[i] = el;
+  });
+}
+
+function applySimplifiedPointsOnData(target, points, rgb) {
+  var isWhite = rgb[0] + rgb[1] + rgb[2] === 255 * 3;
+
+  points.forEach(function (el) {
+    el *= 4;
+    target[el] = rgb[0];
+    target[el + 1] = rgb[1];
+    target[el + 2] = rgb[2];
+    // setting alpha to 0 if color is actually 'white'
+    target[el + 3] = isWhite ? 0 : 255;
+  });
+}
+
+function drawSimplifiedPointsInContext(context, points, rgb, data) {
+  var imgd = context.getImageData(context.canvas.width, context.canvas.height);
+
+  applySimplifiedPointsOnData(imgd.data, points, rgb);
+  context.context.putImageData(imgd, 0, 0);
+
+  return context;
+}
+
 function imageDataIndicesToSimplified(data) {
   return data.map(function (coord) {
     return coord / 4;
@@ -105,6 +133,8 @@ function toSimplified(i) {
 }
 
 function SimplifiedData() {
+  var that = {};
+
   var points = [];
   var index = {};
   points.index = index;
@@ -195,21 +225,27 @@ function SimplifiedData() {
     });
   }
 
-  return {
-    /* properties */
-    points: points,
-    /* builders */
-    fromData: fromData,
-    fromSimplifiedData: fromSimplifiedData,
-    fromSimplifiedObject: fromSimplifiedObject,
-    /* getters */
-    getMaxMin: getMaxMin,
-    getHorizontalLine: getHorizontalLine,
-    getVerticalLine: getVerticalLine,
-    getFirstRect: getFirstRect,
-    getScooping: getScooping,
-    getXYForm: getXYForm
-  };
+  function drawInContext(context, rgb) {
+    drawSimplifiedPointsInContext(context, points, rgb);
+    return that;
+  }
+
+  /* properties */
+  that.points = points;
+  /* builders */
+  that.fromData = fromData;
+  that.fromSimplifiedData = fromSimplifiedData;
+  that.fromSimplifiedObject = fromSimplifiedObject;
+  /* getters */
+  that.getMaxMin = getMaxMin;
+  that.getHorizontalLine = getHorizontalLine;
+  that.getVerticalLine = getVerticalLine;
+  that.getFirstRect = getFirstRect;
+  that.getScooping = getScooping;
+  that.getXYForm = getXYForm;
+  /* doers */
+  that.drawInContext = drawInContext;
+  return that;
 }
 
 var SimplifiedDataFactory = (function() {
@@ -260,6 +296,8 @@ function getRectFromChar(context, char1) {
 }
 
 function Context(canvas) {
+  var that = {};
+
   var context = canvas.getContext('2d');
 
   function toString() {
@@ -298,33 +336,12 @@ function Context(canvas) {
     getDataFromImageData
   );
 
-  function drawSimplifiedPoints(points, rgb, data) {
-    points = points.slice();
-
-    !data && (data = getData());
-    var imgd = context.createImageData(canvas.width, canvas.height),
-      data2 = imgd.data;
-
-    forEach(data, function (el, i) {
-      data2[i] = el;
-    });
-    var isWhite = rgb[0] + rgb[1] + rgb[2] === 255 * 3;
-    points.forEach(function (el) {
-      el *= 4;
-      data2[el] = rgb[0];
-      data2[el + 1] = rgb[1];
-      data2[el + 2] = rgb[2];
-      // setting alpha to 0 if color is actually 'white'
-      data2[el + 3] = isWhite ? 0 : 255;
-    });
-    context.putImageData(imgd, 0, 0);
-    return that;
-  }
-
   var getSimplifiedData = composition(
     getData,
     SimplifiedDataFactory.fromData
   );
+
+  var drawSimplifiedPoints = drawSimplifiedPointsInContext.bind(that, that);
 
   function getScoopedData() {
     var data = getSimplifiedData();
@@ -343,19 +360,18 @@ function Context(canvas) {
     getSimplifiedData
   );
 
-  var that = {
-    context: context,
-    toString: toString,
-    valueOf: valueOf,
-    clear: clear,
-    drawChar: drawChar,
-    getImageData: getImageData,
-    getData: getData,
-    getSimplifiedData: getSimplifiedData,
-    getSimplifiedDataFromChar: getSimplifiedDataFromChar,
-    drawSimplifiedPoints: drawSimplifiedPoints,
-    getScoopedData: getScoopedData
-  };
+  that.canvas = canvas;
+  that.context = context;
+  that.toString = toString;
+  that.valueOf = valueOf;
+  that.clear = clear;
+  that.drawChar = drawChar;
+  that.getImageData = getImageData;
+  that.getData = getData;
+  that.getSimplifiedData = getSimplifiedData;
+  that.getSimplifiedDataFromChar = getSimplifiedDataFromChar;
+  that.drawSimplifiedPoints = drawSimplifiedPoints;
+  that.getScoopedData = getScoopedData;
   return that;
 }
 
