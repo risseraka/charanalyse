@@ -318,6 +318,7 @@ function Context(canvas) {
       data2[el + 3] = isWhite ? 0 : 255;
     });
     context.putImageData(imgd, 0, 0);
+    return that;
   }
 
   var getSimplifiedData = composition(
@@ -545,9 +546,7 @@ function drawGradientForms(context, forms) {
   });
 }
 
-function dissectChar(context, char1, next) {
-  context.clear();
-  context.drawChar(char1, RGB.red);
+function dissectContext(context, next) {
   var data = context.getSimplifiedData().points;
 
   //console.log(data);
@@ -584,6 +583,12 @@ function dissectChar(context, char1, next) {
 
   typeof next === 'function' && next(forms);
   return forms;
+}
+
+function dissectChar(context, char1, next) {
+  context.clear();
+  context.drawChar(char1, RGB.red);
+  return dissectContext(context, next);
 }
 
 function getFirstPointHorizCond(data, start, cond) {
@@ -1660,19 +1665,16 @@ function consumeCurvedLinesFromLine(line) {
     var curved = consumeCurvedLineFromLine(line);
     curves.push(curved);
   }
-  context1.drawSimplifiedPoints(flatten(curves), RGB.green);
   return curves;
 }
 
 function detectEdgesByConsumingCurvesFromChar(context, char1) {
   var lines = getLinesFromChar(context, char1);
   var linesCurves = toMap(consumeCurvedLinesFromLine)(lines);
-  var edges = mapAndConcat(getFirstFromArraysOfArrays)(linesCurves);
-  context1.drawSimplifiedPoints(edges, RGB.blue);
-  return edges;
+  return mapAndConcat(getFirstFromArraysOfArrays)(linesCurves);
 }
 
-detectEdgesByConsumingCurvesFromChar(context1, yong);
+context1.drawSimplifiedPoints(detectEdgesByConsumingCurvesFromChar(context1, yong), RGB.red);
 
 function getStraightsFromLine(line, ortho, touch) {
   var straights = [];
@@ -1775,9 +1777,7 @@ function getStraightEdgesFromLine(line) {
   //context1.drawSimplifiedPoints(lasts, RGB.green);
   var lasts2 = getStraightsLastsFromLine(line.slice());
   //context1.drawSimplifiedPoints(lasts2, RGB.red);
-  var lasts3 = getStraightsLastsFromLine(lasts2.slice(), false, true);
-  context1.drawSimplifiedPoints(lasts3, RGB.red);
-  return lasts3;
+  return getStraightsLastsFromLine(lasts2.slice(), false, true);
 }
 
 function detectOrthoLineEdgesFromScoopedData(scooped) {
