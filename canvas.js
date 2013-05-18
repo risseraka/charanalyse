@@ -319,7 +319,7 @@ function Context(canvas) {
     context.fillText(char1, 0, 85);
 
     typeof next === 'function' && next(context);
-    return context;
+    return that;
   }
 
   function getImageData(w, h) {
@@ -1064,9 +1064,6 @@ function compareForms(form1, form2) {
     form2.sort(function (a, b){return a - b;})
   );
 
-  context3.drawSimplifiedPoints(common, RGB.green);
-  context4.drawSimplifiedPoints(common, RGB.green);
-
   var match1 = Math.round(100 * common.length / form1.length);
   var match2 = Math.round(100 * common.length / form2.length);
   return {
@@ -1077,46 +1074,46 @@ function compareForms(form1, form2) {
 }
 
 var DEBUG = false;
+
+function printMatches(char1, char2, i1, i2, common, form1, form2, match1, match2) {
+  console.log(
+    char1,
+    'n:', i1,
+    common.length + '/' + form1.length,
+    '(' + match1 + '%)',
+    '|',
+    char2,
+    'n:', i2,
+    common.length + '/' + form2.length,
+    '(' + match2 + '%)'
+  );
+}
+
 function compareCharForms(char1, char2, next) {
   context1.clear();
-  dissectChar(context1, char1, function (forms1) {
-    context2.clear();
-    dissectChar(context2, char2, function (forms2) {
-      var matches = [];
+  context2.clear();
 
-      forms1.slice(0, 1).forEach(function (form1, i1) {
-        forms2.slice(0, 1).forEach(function (form2, i2) {
-          intersection = compareForms(form1, form2);
-          var common = intersection.common;
-          var match1 = intersection.match1;
-          var match2 = intersection.match2;
-          if (match1 > 90 && match2 > 90) {
-            console.log(
-              char1, '|', char2,
-              'form1:', i1, ', form2:', i2,
-              common.length + '/' + form1.length,
-              '(' + match1 + '%)',
-              '/',
-              '(' + match2 + '%)'
-            );
-            matches = [char1, char2];
-          } else if (DEBUG) {
-            console.log(
-              char1, '|', char2,
-              'form1:', i1, ', form2:', i2,
-              common.length + '/' + form1.length,
-              '(' + match1 + '%)',
-              '/',
-              '(' + match2 + '%)'
-            );
-          }
-        });
-      });
-      matches = matches.length > 0 ? matches : undefined;
-      typeof next === 'function' && next(matches);
-      return match2;
+  var forms1 = dissectChar(context1, char1);
+  var forms2 = dissectChar(context2, char2);
+  var matches = [];
+
+  forms1.forEach(function (form1, i1) {
+    forms2.forEach(function (form2, i2) {
+      var intersection = compareForms(form1.points, form2.points);
+      var common = intersection.common;
+      var match1 = intersection.match1;
+      var match2 = intersection.match2;
+      if (match1 > 90 && match2 > 90) {
+        printMatches(char1, char2, i1, i2, common, form1.points, form2.points, match1, match2);
+        matches = [char1, char2];
+      } else if (DEBUG) {
+        printMatches(char1, char2, i1, i2, common, form1.points, form2.points, match1, match2);
+      }
     });
   });
+  matches = matches.length > 0 ? matches : undefined;
+  typeof next === 'function' && next(matches);
+  return matches;
 }
 
 function drawAllChars(chars, rate) {
@@ -1144,8 +1141,6 @@ function scaleSimplifiedData(context, data) {
   context.clear();
   scaleContext.clear();
 
-  // data = data.slice().sort(function (a, b) { return a - b; });
-
   var maxmin = data.getMaxMin();
 
   scaleContext.drawSimplifiedPoints(data.points, RGB.red);
@@ -1153,38 +1148,13 @@ function scaleSimplifiedData(context, data) {
     scaleContext.context.canvas,
     maxmin.x.min, maxmin.y.min,
     maxmin.x.max - maxmin.x.min + 1, maxmin.y.max - maxmin.y.min + 1,
-    0, 0, 100, 100
+    0, 0,
+    100, 100
   );
 }
 
-function compareHaiBu(char1, char2, next) {
-  dissectChar(context1, '还', function (forms1) {
-    dissectChar(context2, '不', function (forms2) {
-      scaleSimplifiedData(context3, forms1[1]);
-      scaleSimplifiedData(context4, forms2[0].concat(forms2[1]));
-
-      var form1 = context3.getSimplifiedData().points;
-      var form2 = context4.getSimplifiedData().points;
-      window.intersection = compareForms(form1, form2);
-      // console.log(intersection);
-    });
-  });
-}
-
-function compareHaiBu(char1, char2, next) {
-  dissectChar(context1, '还', function (forms1) {
-    dissectChar(context2, '不', function (forms2) {
-      scaleSimplifiedData(context3, forms1[1]);
-      scaleSimplifiedData(context4, forms2[0].concat(forms2[1]));
-
-      var form1 = context3.getSimplifiedData().points;
-      var form2 = context4.getSimplifiedData().points;
-      window.intersection = compareForms(form1, form2);
-      // console.log(intersection);
-    });
-  });
-}
-
+var hai = '还';
+var bu = '不';
 var yong = '永';
 var hui = '回';
 var pairs = [
@@ -1195,54 +1165,30 @@ var pairs = [
   ['生', '主']
 ];
 
-function compareZiXue(char1, char2, next) {
-  char1 = pairs[2][0];
-  char2 = pairs[2][1];
-  context3.drawChar(char1, RGB.green);
-  context4.drawChar(char2, RGB.green);
-  dissectChar(context1, char1, function (forms1) {
-    dissectChar(context2, char2, function (forms2) {
-      if (false) {
-        if (forms1.length >= 1) {
-          scaleSimplifiedData(context3, forms1.slice(-1)[0]);
-        }
-        if (forms2.length >= 1) {
-          scaleSimplifiedData(context4, forms2.slice(-1)[0]);
-        }
-      }
+function compareHaiBu(char1, char2) {
+  var forms1 = dissectChar(context1, hai);
+  var forms2 = context2.drawChar(bu, RGB.red).getSimplifiedData();
 
-      var form1 = context3.getSimplifiedData().points;
-      var form2 = context4.getSimplifiedData().points;
-      window.intersection = compareForms(form1, form2);
-      // console.log(intersection);
-    });
-  });
+  scaleSimplifiedData(context3, forms1[1]);
+  scaleSimplifiedData(context4, forms2);
+
+  var form1 = context3.getSimplifiedData().points;
+  var form2 = context4.getSimplifiedData().points;
+
+  return compareForms(form1, form2);
 }
 
 function compareFormsAtPos(char1, pos1, char2, pos2) {
-  dissectChar(context1, char1, function (forms1) {
-    dissectChar(context2, char2, function (forms2) {
-      scaleSimplifiedData(context3, forms1.slice(pos1)[0]);
-      scaleSimplifiedData(context4, forms2.slice(pos2)[0]);
+  var forms1 = dissectChar(context1, char1);
+  var forms2 = dissectChar(context2, char2);
 
-      var form1 = context3.getSimplifiedData().points;
-      var form2 = context4.getSimplifiedData().points;
-      window.intersection = compareForms(form1, form2);
-      // console.log(intersection);
+  scaleSimplifiedData(context3, forms1.slice(pos1)[0]);
+  scaleSimplifiedData(context4, forms2.slice(pos2)[0]);
 
-      var exclusion1 = getFilteredSimplifiedDataFromContext(context3, RGB.red);
-      var exclusion2 = getFilteredSimplifiedDataFromContext(context4, RGB.red);
-      context5.drawSimplifiedPoints(exclusion1, RGB.red);
-      context6.drawSimplifiedPoints(exclusion2, RGB.red);
-    });
-  });
-}
+  var form1 = context3.getSimplifiedData().points;
+  var form2 = context4.getSimplifiedData().points;
 
-function getScoopedDataFromChar(context, char1) {
-  context.clear();
-  context.drawChar(char1, RGB.red);
-
-  return context.getScoopedData();
+  return compareForms(form1, form2);
 }
 
 var clockWiseOrder = [
@@ -1308,6 +1254,13 @@ function getLinesFromScoopedData(scoopedData) {
   return lines;
 }
 
+function getScoopedDataFromChar(context, char1) {
+  context.clear();
+  context.drawChar(char1, RGB.red);
+
+  return context.getScoopedData();
+}
+
 function getLinesFromChar(context, char1) {
   var scooped = getScoopedDataFromChar(context, char1);
   return getLinesFromScoopedData(scooped);
@@ -1370,27 +1323,20 @@ function getScoopingFromSimplifiedData(data) {
 
 function printLine(line) {
   var printable = line.map(function (xy) {
-    return [xy % 100, Math.floor(xy / 100)]
+    return [simplifiedX(xy), simplifiedY(xy)];
   }).join(' | ');
   console.log(printable);
 }
 
-function drawBordersAndMiddles(context2, borders) {
-  var points = borders.reduce(function (res, borders) {
-    if (DEBUG)
-    console.log(
-      simplifiedX(borders[0]), simplifiedY(borders[0]), ':',
-      simplifiedX(borders[1]), simplifiedY(borders[1])
-    );
-    return res.concat(borders);
-  }, []);
-  context2.drawSimplifiedPoints(points, RGB.black);
+function drawBordersAndMiddles(context, borders) {
+  var points = flatten(borders);
+  context.drawSimplifiedPoints(points, RGB.black);
 
   var middles = borders.map(function (borders) {
     return Math.floor((simplifiedX(borders[0]) + simplifiedX(borders[1])) / 2) +
       Math.round((simplifiedY(borders[0]) + simplifiedY(borders[1])) / 2) * 100;
   });
-  context2.drawSimplifiedPoints(middles, RGB.red);
+  context.drawSimplifiedPoints(middles, RGB.red);
 }
 
 function getHorizontalBorders(simplifiedData) {
@@ -1499,17 +1445,16 @@ function borderDetectionChar(context1, char1) {
 
 function dissectAndDetectBorder(channel, char1, i) {
   var context2 = window['context' + (+channel)];
-  dissectChar(context2, char1, function (forms) {
-    i = i || 0;
-    forms.slice(i, i + 1).forEach(function (form) {
-      var context4 = window['context' + (+channel + 2)];
-      scaleSimplifiedData(context4, form);
-      var simplifiedData = context4.getSimplifiedData().points;
-      var context6 = window['context' + (+channel + 4)];
-      drawBordersAndMiddles(context6,
-        borderDetectionFromSimplifiedData(simplifiedData)
-      );
-    });
+  var forms = dissectChar(context2, char1);
+  i = i || 0;
+  forms.slice(i, i + 1).forEach(function (form) {
+    var context4 = window['context' + (+channel + 2)];
+    scaleSimplifiedData(context4, form);
+    var simplifiedData = context4.getSimplifiedData().points;
+    var context6 = window['context' + (+channel + 4)];
+    drawBordersAndMiddles(context6,
+      borderDetectionFromSimplifiedData(simplifiedData)
+    );
   });
 }
 
@@ -1870,10 +1815,9 @@ function scoopAndDetectEdgesFromChar(context, char1) {
 }
 
 function dissectScoopAndDetectEdges(context, char1) {
-  dissectChar(context, char1, function (forms) {
-    var edges = scoopAndDetectEdgesFromSimplifiedData(context, forms[1]);
-    context2.drawSimplifiedPoints(edges, RGB.red);
-  });
+  var forms = dissectChar(context, char1);
+  var edges = scoopAndDetectEdgesFromSimplifiedData(context, forms[1]);
+  context2.drawSimplifiedPoints(edges, RGB.red);
 }
 
 function edgeDetection(context1, char1) {
@@ -1924,19 +1868,13 @@ function lineDetection(char1) {
   var scooped = getScoopedDataFromChar(context1, char1);
 
   var horizontal = detectHorizontalLinesFromScoopedData(scooped);
-  var horizontalPoints = horizontal.reduce(function (res, line) {
-    if (line.length > 1) {
-      return res.concat(line);
-    }
-    return res;
-  }, []);
+  var horizontalPoints = flatten(horizontal.filter(function (line) {
+    return line.length > 1;
+  }));
   var vertical = detectVerticalLinesFromScoopedData(toVerticalData(scooped));
-  var verticalPoints = vertical.reduce(function (res, line) {
-    if (line.length > 1) {
-      return res.concat(line);
-    }
-    return res;
-  }, []);
+  var verticalPoints = flatten(vertical.filter(function (line) {
+    return line.length > 1;
+  }));
   context2.clear();
   context2.drawSimplifiedPoints(horizontalPoints, RGB.red)
   context2.drawSimplifiedPoints(verticalPoints, RGB.red)
@@ -1980,51 +1918,50 @@ function enterAndGoToMiddle(char1) {
 }
 
 function formNormalisation(char1) {
-  dissectChar(context1, char1, function (forms) {
-    forms.forEach(function (form, i) {
-      if (i > 0) { return; }
-      form.sort(function (a,b) { return a - b; });
+  var forms = dissectChar(context1, char1);
+  forms.forEach(function (form, i) {
+    if (i > 0) { return; }
+    form.sort(function (a,b) { return a - b; });
 
-      context2.clear();
-      context2.drawSimplifiedPoints(form, RGB.blue);
-      context.getScoopedData(2);
+    context2.clear();
+    context2.drawSimplifiedPoints(form, RGB.blue);
+    context.getScoopedData(2);
 
-      console.log(form);
+    console.log(form);
 
-      console.log(
-        getStringFromSimplifiedPoint(form[0]),
-        ':',
-        getStringFromSimplifiedPoint(form.slice(-1)[0])
-      );
+    console.log(
+      getStringFromSimplifiedPoint(form[0]),
+      ':',
+      getStringFromSimplifiedPoint(form.slice(-1)[0])
+    );
 
-      var xyForm = form.getXYForm();
+    var xyForm = form.getXYForm();
 
-      var previous = 0;
-      console.log(
-        '|' + xyForm.map(function (point) {
-          var str = point.join(',');
-          if (point[1] > previous) {
-            str += '\n';
-            previous = point[1];
-          }
-          return str;
-        }).join('|')
-      );
-
-      var vec = xyForm.reduce(function (res, point) {
-        var x = point[0];
-        var y = point[1];
-        res[y] === undefined && (res[y] = [], res.length = y + 1);
-        res[y].push(point);
-        return res;
-      }, []).reduce(function (res, line, y) {
-        if (line) {
-          res.push([[line[0][0], y], [line.slice(-1)[0][0], y]]);
+    var previous = 0;
+    console.log(
+      '|' + xyForm.map(function (point) {
+        var str = point.join(',');
+        if (point[1] > previous) {
+          str += '\n';
+          previous = point[1];
         }
-        return res;
-      });
-      console.log(vec);
+        return str;
+      }).join('|')
+    );
+
+    var vec = xyForm.reduce(function (res, point) {
+      var x = point[0];
+      var y = point[1];
+      res[y] === undefined && (res[y] = [], res.length = y + 1);
+      res[y].push(point);
+      return res;
+    }, []).reduce(function (res, line, y) {
+      if (line) {
+        res.push([[line[0][0], y], [line.slice(-1)[0][0], y]]);
+      }
+      return res;
     });
+    console.log(vec);
   });
 }
 
