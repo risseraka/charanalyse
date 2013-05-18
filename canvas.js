@@ -562,15 +562,14 @@ function drawGradientForms(context, forms) {
   });
 }
 
-function dissectContext(context, next) {
-  var data = context.getSimplifiedData().points;
-
-  //console.log(data);
+function dissectSimplifiedPoints(points, next) {
+  points = points.slice();
+  setArrayIndex(points);
 
   var forms = [];
 
   var visited = {};
-  var notVisited = data;
+  var notVisited = points;
   while (notVisited.length > 0) {
     var form = [];
     var index = {};
@@ -588,17 +587,18 @@ function dissectContext(context, next) {
       toVisit = toVisit.concat(getAround(notVisited, x));
       index[x] = form.push(x) - 1;
     }
-    // console.log('visited:', visited);
-    // console.log('notVisited:', notVisited);
     form.index = index;
     forms.push(
       SimplifiedDataFactory.fromSimplifiedData(toHorizontalData(form))
     );
   }
-  // console.log(forms.length, forms);
 
   typeof next === 'function' && next(forms);
   return forms;
+}
+
+function dissectContext(context, next) {
+  return dissectSimplifiedPoints(context.getSimplifiedData().points);
 }
 
 function dissectChar(context, char1, next) {
