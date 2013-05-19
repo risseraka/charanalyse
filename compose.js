@@ -59,17 +59,13 @@ function toArrayResult(func) {
 // }
 function composition(/*func1, func2, ...*/) {
   var funcs = arraySlice(arguments);
+  var func0 = funcs.shift();
   return function () {
-    funcs[0] && (
-      funcs[0] = Function.prototype.apply.bind(
-        funcs[0], funcs[0], arraySlice(arguments)
-      )
-    );
     return funcs.reduce(
       function (res, func) {
         return func.call(this, res);
       },
-      undefined
+      func0.apply(func0, arraySlice(arguments))
     );
   };
 }
