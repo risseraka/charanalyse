@@ -1692,6 +1692,36 @@ function getStraightEdgesFromLine(line) {
   return getStraightsLastsFromLine(lasts2.slice(), false, true);
 }
 
+function getOrthoLastsFromStraights(straights) {
+  return straights.reduce(function (res, straight, i, straights) {
+    var point;
+    if (straight.length > 1 && i > 0 && straights[i - 1].length > 1) {
+      var lastStraight = straights[i - 1];
+
+      var first = straight[0];
+      var last = getLastFromArray(straight);
+      // comparing last line and current line first and last points
+      point = Math.abs(first - last) ===
+        Math.abs(lastStraight[0] - getLastFromArray(lastStraight)) ?
+          last : first;
+    } else {
+      point = getLastFromArray(straight);
+    }
+    res.push(point);
+    return res;
+  }, []);
+}
+
+function blablaFromLine(line) {
+  var straights = getStraightsFromLine(line);
+  var lasts = toMap(getLastFromArray)(straights);
+  var lastsStraights = getStraightsFromLine(lasts.slice(), false, true);
+  var lastslasts = getOrthoLastsFromStraights(lastsStraights);
+  var lll = getStraightsFromLine(lastslasts.slice());
+  var ll = getOrthoLastsFromStraights(lll);
+  return ll;
+}
+
 function detectOrthoLineEdgesFromScoopedData(context, scooped) {
   var lines = scooped.getLines();
   var edges = lines.slice(1, 2).reduce(function (edges, line) {
